@@ -8,6 +8,8 @@ only_back_kb = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+btnStart = KeyboardButton(text="Старт")
+
 button1 = KeyboardButton(text="Выйти на слот")
 button2 = KeyboardButton(text="Уйти со слота")
 button3 = KeyboardButton(text="Мои задания")
@@ -21,6 +23,11 @@ btnAdmin1 = KeyboardButton(text="Назначить")
 btnAdmin2 = KeyboardButton(text="Новая карта зон")
 
 btnCoordinator = KeyboardButton(text="Отправить задание")
+
+start_kb = ReplyKeyboardMarkup(
+    keyboard=[[btnStart]],
+    resize_keyboard=True
+)
 
 coord_start_kb = ReplyKeyboardMarkup(
     keyboard=[[btnCoordinator]],

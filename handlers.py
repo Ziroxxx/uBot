@@ -78,18 +78,23 @@ async def get_role_handler(msg: Message, state: FSMContext):
 
     user_data = await state.get_data()
     user = Users.get(id=user_data.get('tg_id'))
+    reply_kb = kb.start_kb
     if role == 'Скаут':
         role = 'scout'
+        reply_kb = kb.start_finish_kb
     elif role == 'Координатор':
         role = 'sScout'
+        reply_kb = kb.coord_start_kb
     elif role == 'Администратор':
         role = 'admin'
+        reply_kb = kb.admin_start_kb
     else:
         role = 'non-role'
     user.role = role
     user.save()
 
-    await msg.answer(f"Пользователь обновлен с ролью: {role}.")
+    await msg.answer(f"Пользователь обновлен с ролью: {role}.", reply_markup=kb.admin_start_kb)
+    await msg.bot.send_message(chat_id=user.id, text=f"Вам обновили роль, ваша роль {role}", reply_markup=reply_kb)
     await state.clear()  # Сбрасываем состояние
 
 @router.message(lambda msg: msg.text == 'Новая карта зон')
