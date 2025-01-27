@@ -24,6 +24,26 @@ btnAdmin2 = KeyboardButton(text="Новая карта зон")
 
 btnCoordinator = KeyboardButton(text="Отправить задание")
 
+def create_dynamic_keyboard(button_texts, max_row_width=20):
+    if not button_texts:  # Проверяем, чтобы список кнопок не был пустым
+        raise ValueError("Список кнопок пуст. Невозможно создать клавиатуру.")
+    
+    keyboard_rows = []  # Список строк кнопок
+    current_row = []  # Текущая строка кнопок
+
+    for text in button_texts:
+        if sum(len(btn.text) for btn in current_row) + len(current_row) + len(text) > max_row_width:
+            keyboard_rows.append(current_row)
+            current_row = []
+
+        current_row.append(KeyboardButton(text=text))
+    
+    # Добавляем оставшиеся кнопки
+    if current_row:
+        keyboard_rows.append(current_row)
+
+    return ReplyKeyboardMarkup(keyboard=keyboard_rows, resize_keyboard=True)
+
 start_kb = ReplyKeyboardMarkup(
     keyboard=[[btnStart]],
     resize_keyboard=True
@@ -45,17 +65,12 @@ admin_back_kb = ReplyKeyboardMarkup(
 )
 
 role_kb = ReplyKeyboardMarkup(
-    keyboard=[[btnScout, btnsScout, btnAdmin, btnNoRole, btnBack]],
+    keyboard=[[btnScout, btnsScout], [btnAdmin, btnNoRole], [btnBack]],
     resize_keyboard=True
 )
 
 start_finish_kb = ReplyKeyboardMarkup(
     keyboard=[[button1, button2, button3]],
-    resize_keyboard=True,
-)
-
-zones_kb = ReplyKeyboardMarkup(
-    keyboard=[[]],
     resize_keyboard=True,
 )
 

@@ -126,7 +126,7 @@ async def handle_json_file(msg: Message, state: FSMContext):
                         # Пытаемся загрузить содержимое как JSON
                         json_data = json.loads(file_content)  # Декодируем бинарные данные в JSON
                         # Парсим данные и добавляем в базу
-                        await process_zones(json_data, msg)
+                        await process_zones(json_data, msg, state)
                     except json.JSONDecodeError:
                         await msg.answer("Не удалось декодировать файл как JSON. Пожалуйста, убедитесь, что файл имеет корректный формат GeoJSON.")
                 else:
@@ -134,7 +134,7 @@ async def handle_json_file(msg: Message, state: FSMContext):
     else:
         await msg.answer("Пожалуйста, отправьте файл в формате GeoJSON.")
 
-async def process_zones(json_data, msg: Message):
+async def process_zones(json_data, msg: Message, state: FSMContext):
     # Очищаем старые данные
     scouts = Users.select()
     for s in scouts:
@@ -148,14 +148,21 @@ async def process_zones(json_data, msg: Message):
     try:
         # Извлекаем данные зон из JSON
         features = json_data.get('features', [])
+        id_coord = 0
         
         for feature in features:
             # Получаем имя зоны и координаты
-            zone_name = feature['properties']['description']
+            try:
+                zone_name = feature['properties']['description']
+            except:
+                await msg.answer("Есть зона без описания, перепроверьте файл!", reply_markup=kb.admin_start_kb)
+                await state.clear()
+                return
             coordinates = feature['geometry']['coordinates'][0]  # Получаем список координат
+            id_zone = feature['id']
 
             # Создаём запись для зоны в базе данных
-            zone, created = Zone.get_or_create(name=zone_name, status='non-active')
+            zone, created = Zone.get_or_create(id=id_zone, name=zone_name, status='non-active')
 
             if created:
                 await msg.answer(f"Зона {zone_name} добавлена.")
@@ -163,9 +170,10 @@ async def process_zones(json_data, msg: Message):
             # Добавляем координаты в таблицу Coordinate
             for coord in coordinates:
                 longitude, latitude = coord
-                Coordinate.create(longitude=longitude, latitude=latitude, zonefk=zone.id)
+                Coordinate.create(id=id_coord, longitude=longitude, latitude=latitude, zonefk=zone.id)
+                id_coord += 1
         
-        await msg.answer("Новые данные успешно загружены в базу данных.")
+        await msg.answer("Новые данные успешно загружены в базу данных.", reply_markup=kb.admin_start_kb)
 
     except Exception as e:
         await msg.answer(f"Произошла ошибка при обработке данных: {str(e)}")
@@ -299,14 +307,10 @@ async def hadle_callback(callback_query: types.CallbackQuery):
 async def handler_enter_slot(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) == 'scout':
         zones = Zone.select()
-        zones_list = []
-        kb.zones_kb.keyboard.clear()
-        zones_list.append(kb.btnBack)
-        for z in zones:
-            zone_i = KeyboardButton(text=z.name)
-            zones_list.append(zone_i)
-        kb.zones_kb.keyboard.append(zones_list)
-        await msg.answer(f"Выбирете зону для выхода на слот.", reply_markup=kb.zones_kb)
+        zones_names = [z.name for z in zones]
+        zones_kb = kb.create_dynamic_keyboard(zones_names)
+        zones_kb.keyboard.append([kb.btnBack])
+        await msg.answer(f"Выбирете зону для выхода на слот.", reply_markup=zones_kb)
         await state.set_state(SlotState.waiting_for_zone)
     else:
         await msg.answer("Вы не скаут.")
@@ -314,7 +318,7 @@ async def handler_enter_slot(msg: Message, state: FSMContext):
 @router.message(SlotState.waiting_for_zone)
 async def hadler_start_slot(msg: Message, state: FSMContext):
     if msg.text == "Назад":
-        await msg.answer("Добро пожаловать в бота Urent. Выберите опцию, по кнопкам ниже.", reply_markup=kb.start_finish_kb)
+        await msg.answer("Выберите опцию, по кнопкам ниже.", reply_markup=kb.start_finish_kb)
         await state.clear()
         return
     try:

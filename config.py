@@ -1,1 +1,1 @@
-BOT_TOKEN = 'paste_your_token_here'
+BOT_TOKEN = '7566086699:AAFEnJ7uF4omGf85AZEdBaVMkXwLUHZggXc'
