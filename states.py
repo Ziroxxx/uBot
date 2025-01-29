@@ -11,6 +11,7 @@ class TaskState(StatesGroup):
     waiting_for_task = State()
 
 class SlotState(StatesGroup):
+    waiting_for_ao = State()
     waiting_for_zone = State()
 
 class DoneTaskState(StatesGroup):

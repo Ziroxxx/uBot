@@ -1,6 +1,6 @@
 from peewee import *
 
-database = PostgresqlDatabase('urentDB', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': 'klopa228'})
+database = PostgresqlDatabase('urentDB', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': '1234'})
 
 class UnknownField(object):
     def __init__(self, *_, **__): pass
@@ -10,8 +10,9 @@ class BaseModel(Model):
         database = database
 
 class Zone(BaseModel):
-    name = TextField(null=True)
-    status = TextField(null=True)
+    name = TextField()
+    status = TextField()
+    ao = TextField()
 
     class Meta:
         table_name = 'zone'

@@ -153,16 +153,23 @@ async def process_zones(json_data, msg: Message, state: FSMContext):
         for feature in features:
             # Получаем имя зоны и координаты
             try:
-                zone_name = feature['properties']['description']
+                zone_name_data = feature['properties']['description'].strip()
             except:
                 await msg.answer("Есть зона без описания, перепроверьте файл!", reply_markup=kb.admin_start_kb)
                 await state.clear()
                 return
+            
+            if ',' not in zone_name_data:
+                await msg.answer("Есть зона без деления на АО (должна быть запятая), перепроверьте файл!", reply_markup=kb.admin_start_kb)
+                await state.clear()
+                return
+
+            zone_ao, zone_name = map(str.strip, zone_name_data.split(',', 1))
             coordinates = feature['geometry']['coordinates'][0]  # Получаем список координат
             id_zone = feature['id']
 
             # Создаём запись для зоны в базе данных
-            zone, created = Zone.get_or_create(id=id_zone, name=zone_name, status='non-active')
+            zone, created = Zone.get_or_create(id=id_zone, name=zone_name, ao=zone_ao, status='non-active')
 
             if created:
                 await msg.answer(f"Зона {zone_name} добавлена.")
@@ -307,32 +314,58 @@ async def hadle_callback(callback_query: types.CallbackQuery):
 async def handler_enter_slot(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) == 'scout':
         zones = Zone.select()
-        zones_names = [z.name for z in zones]
-        zones_kb = kb.create_dynamic_keyboard(zones_names)
+        if len(zones) == 0:
+            await msg.answer("В данный момент в базе данных нет зон", reply_markup=kb.start_finish_kb)
+            await state.clear()
+            return
+        zones_ao = [z.ao for z in zones]
+        zones_kb = kb.create_dynamic_keyboard(list(set(zones_ao)))
         zones_kb.keyboard.append([kb.btnBack])
-        await msg.answer(f"Выбирете зону для выхода на слот.", reply_markup=zones_kb)
-        await state.set_state(SlotState.waiting_for_zone)
+        await msg.answer(f"Выбирете административную область (АО) для выхода на слот.", reply_markup=zones_kb)
+        await state.set_state(SlotState.waiting_for_ao)
     else:
         await msg.answer("Вы не скаут.")
+
+@router.message(SlotState.waiting_for_ao)
+async def handler_choose_ao(msg: Message, state: FSMContext):
+    ao = msg.text.strip()
+    if ao == 'Назад':
+        await msg.answer("Выберите опцию по кнопкам ниже.", reply_markup=kb.start_finish_kb)
+        await state.clear()
+        return
+    ao_bd = [z.ao for z in Zone.select()]
+    if ao not in ao_bd:
+        await msg.answer("Вы выбрали несуществующую АО! Пользуйтесь клавиатурой", reply_markup=kb.start_finish_kb)
+        await state.clear()
+        return
+    zones_obj = Zone.select().where(Zone.ao == ao)
+    zones_names = [z.name for z in zones_obj]
+    zones_kb = kb.create_dynamic_keyboard(zones_names)
+    zones_kb.keyboard.append([kb.btnBack])
+    await msg.answer("Выберите зону...", reply_markup=zones_kb)
+    await state.set_state(SlotState.waiting_for_zone)
+
+
 
 @router.message(SlotState.waiting_for_zone)
 async def hadler_start_slot(msg: Message, state: FSMContext):
     if msg.text == "Назад":
-        await msg.answer("Выберите опцию, по кнопкам ниже.", reply_markup=kb.start_finish_kb)
         await state.clear()
+        await handler_enter_slot(msg, state)
         return
-    try:
-        zone_msg = msg.text.strip()
-        zone_object = Zone.get(Zone.name == zone_msg)
-        zone_object.status = 'active'
-        user_scout = Users.get(id=msg.from_user.id)
-        user_scout.zonefk = zone_object.id
-        zone_object.save()
-        user_scout.save()
-        await msg.answer(f"Вы вышли на слот {zone_msg}", reply_markup=kb.start_finish_kb)
-        await state.clear()
-    except:
-        await msg.answer("Вы выбрали зону не из списка, попробуйте еще раз используя /enter")
+    #try:
+    zone_msg = msg.text.strip()
+    print(zone_msg)
+    zone_object = Zone.select().where(Zone.name == zone_msg).first()
+    zone_object.status = 'active'
+    user_scout = Users.get(id=msg.from_user.id)
+    user_scout.zonefk = zone_object.id
+    zone_object.save()
+    user_scout.save()
+    await msg.answer(f"Вы вышли на слот {zone_msg}", reply_markup=kb.start_finish_kb)
+    await state.clear()
+    # except Exception as e:
+    #     await msg.answer(f"Вы выбрали зону не из списка, попробуйте еще раз используя /enter{str(e)}")
 
 @router.message(lambda msg: msg.text == "Уйти со слота")
 async def handler_exit_slot(msg: Message, state: FSMContext):
