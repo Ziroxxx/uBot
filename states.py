@@ -15,5 +15,4 @@ class SlotState(StatesGroup):
     waiting_for_zone = State()
 
 class DoneTaskState(StatesGroup):
-    waiting_for_task = State()
     waiting_for_photo = State()

@@ -1,7 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
-btnBack = KeyboardButton(text="Назад")
+btnBack = KeyboardButton(text="🔙 Назад")
 
 only_back_kb = ReplyKeyboardMarkup(
     keyboard=[[btnBack]],
@@ -10,19 +10,18 @@ only_back_kb = ReplyKeyboardMarkup(
 
 btnStart = KeyboardButton(text="Старт")
 
-button1 = KeyboardButton(text="Выйти на слот")
-button2 = KeyboardButton(text="Уйти со слота")
-button3 = KeyboardButton(text="Мои задания")
+button1 = KeyboardButton(text="🚀 Выйти на слот")
+button2 = KeyboardButton(text="🏠 Уйти со слота")
 
 btnScout = KeyboardButton(text="Скаут")
 btnsScout = KeyboardButton(text="Координатор")
 btnAdmin = KeyboardButton(text="Администратор")
 btnNoRole = KeyboardButton(text="non-role")
 
-btnAdmin1 = KeyboardButton(text="Назначить")
-btnAdmin2 = KeyboardButton(text="Новая карта зон")
+btnAdmin1 = KeyboardButton(text="🔑 Назначить")
+btnAdmin2 = KeyboardButton(text="⚙️ Новая карта зон")
 
-btnCoordinator = KeyboardButton(text="Отправить задание")
+btnCoordinator = KeyboardButton(text="✉️ Отправить задание")
 
 def create_dynamic_keyboard(button_texts, max_row_width=20):
     if not button_texts:  # Проверяем, чтобы список кнопок не был пустым
@@ -70,7 +69,7 @@ role_kb = ReplyKeyboardMarkup(
 )
 
 start_finish_kb = ReplyKeyboardMarkup(
-    keyboard=[[button1, button2, button3]],
+    keyboard=[[button1, button2]],
     resize_keyboard=True,
 )
 
@@ -81,4 +80,12 @@ task_list_kb = ReplyKeyboardMarkup(
 
 reply_markup = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Принять задание", callback_data="handler_accept")]
+])
+
+reply_markup_done = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Выполнил", callback_data="handler_done_task")]
+])
+
+reply_markup_back = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Назад", callback_data="handler_done_back")]
 ])

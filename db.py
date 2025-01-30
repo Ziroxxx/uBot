@@ -1,6 +1,6 @@
 from peewee import *
 
-database = PostgresqlDatabase('urentDB', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': '1234'})
+database = PostgresqlDatabase('urentDB', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': 'klopa228'})
 
 class UnknownField(object):
     def __init__(self, *_, **__): pass
@@ -37,6 +37,9 @@ class Users(BaseModel):
 class Task(BaseModel):
     admin_chat = BigIntegerField()
     msg_id_scout = BigIntegerField(null=True)
+    msg_status = BigIntegerField(null=True)
+    msg_text = TextField(null=True)
+    msg_orig = BigIntegerField(null=True)
     scoutfk = ForeignKeyField(column_name='scoutfk', field='id', model=Users, null=True)
 
     class Meta:

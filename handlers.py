@@ -29,28 +29,28 @@ async def start_handler(msg: Message):
         elif user.role == 'scout':
             await msg.answer("Вы скаут!", reply_markup=kb.start_finish_kb)
         else:
-            await msg.answer("Вы пока ещё не получили роль.")
+            await msg.answer("⚠️ Вы пока ещё не получили роль.")
     except:
         await msg.answer("Привет! Я зарегистрировал тебя. Дождись, пока руководство выдаст тебе роль внутри бота!\nДля проверки своей роли снова воспользуйся /start")
         Users.create(id=msg.from_user.id, tg_username=msg.from_user.username, role='non-role')
 
-@router.message(lambda msg: msg.text == 'Назначить')
+@router.message(lambda msg: msg.text == '🔑 Назначить')
 async def register_handler(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) == 'admin':
         await msg.answer("Введите @тег пользователя, права которого вы хотите изменить.", reply_markup=kb.admin_back_kb)
         await state.set_state(RegisterState.waiting_for_telegram_tag)
     else:
-        await msg.answer("Вы не имеете прав на это действие!")
+        await msg.answer("🚫 Вы не имеете прав на это действие!")
 
 @router.message(RegisterState.waiting_for_telegram_tag)
 async def get_telegram_tag_handler(msg: Message, state: FSMContext):
-    if msg.text == 'Назад':
+    if msg.text == '🔙 Назад':
         await msg.answer("Выберите опцию по кнопкам ниже", reply_markup=kb.admin_start_kb)
         await state.clear()
         return
     tag = msg.text.strip()
     if not tag.startswith("@"):
-        await msg.answer("Тег должен начинаться с '@'. Попробуйте снова.")
+        await msg.answer("⚠️ Тег должен начинаться с '@'. Попробуйте снова.")
         return
 
     try:
@@ -60,7 +60,7 @@ async def get_telegram_tag_handler(msg: Message, state: FSMContext):
         await msg.answer(f"ID пользователя {tag} найден: {user.id}. Теперь укажите его роль ('администратор', 'координатор', 'скаут', 'non-role').", reply_markup=kb.role_kb)
         await state.set_state(RegisterState.waiting_for_role)  # Переходим к следующему состоянию
     except:
-        await msg.answer(f"Не удалось найти пользователя с таким тегом. Убедитесь, что тег указан верно")
+        await msg.answer(f"⚠️ Не удалось найти пользователя с таким тегом. Убедитесь, что тег указан верно")
 
 @router.message(RegisterState.waiting_for_role)
 async def get_role_handler(msg: Message, state: FSMContext):
@@ -68,12 +68,12 @@ async def get_role_handler(msg: Message, state: FSMContext):
 
     # Проверяем корректность введенной роли
     valid_roles = ["администратор", "координатор", "скаут", "non-role"]
-    if msg.text == "Назад":
+    if msg.text == "🔙 Назад":
         await msg.answer("Выберите опцию по кнопкам ниже", reply_markup=kb.admin_start_kb)
         await state.clear()
         return
     if role.lower() not in valid_roles:
-        await msg.answer("Неверная роль. Укажите одну из: администратор, координатор, скаут или non-role.")
+        await msg.answer("⚠️ Неверная роль. Укажите одну из: администратор, координатор, скаут или non-role.")
         return
 
     user_data = await state.get_data()
@@ -94,20 +94,20 @@ async def get_role_handler(msg: Message, state: FSMContext):
     user.save()
 
     await msg.answer(f"Пользователь обновлен с ролью: {role}.", reply_markup=kb.admin_start_kb)
-    await msg.bot.send_message(chat_id=user.id, text=f"Вам обновили роль, ваша роль {role}", reply_markup=reply_kb)
+    await msg.bot.send_message(chat_id=user.id, text=f"🎉 Вам обновили роль, ваша роль {role}", reply_markup=reply_kb)
     await state.clear()  # Сбрасываем состояние
 
-@router.message(lambda msg: msg.text == 'Новая карта зон')
+@router.message(lambda msg: msg.text == '⚙️ Новая карта зон')
 async def set_map_info(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) == 'admin':
         await msg.answer('Отправьте JSON файл зон, сгенерированный с Яндекс карт\nСсылка: https://yandex.ru/map-constructor', reply_markup=kb.admin_back_kb)
         await state.set_state(LoadMapState.waiting_for_file)
     else:
-        await msg.answer("Вы не имеете прав на это действие!")
+        await msg.answer("🚫 Вы не имеете прав на это действие!")
 
 @router.message(LoadMapState.waiting_for_file)
 async def handle_json_file(msg: Message, state: FSMContext):
-    if msg.text == "Назад":
+    if msg.text == "🔙 Назад":
         await msg.answer("Выберите опцию по кнопкам ниже", reply_markup=kb.admin_start_kb)
         await state.clear()
         return
@@ -128,18 +128,18 @@ async def handle_json_file(msg: Message, state: FSMContext):
                         # Парсим данные и добавляем в базу
                         await process_zones(json_data, msg, state)
                     except json.JSONDecodeError:
-                        await msg.answer("Не удалось декодировать файл как JSON. Пожалуйста, убедитесь, что файл имеет корректный формат GeoJSON.")
+                        await msg.answer("⚠️ Не удалось декодировать файл как JSON. Пожалуйста, убедитесь, что файл имеет корректный формат GeoJSON.")
                 else:
-                    await msg.answer("Не удалось загрузить файл.")
+                    await msg.answer("⚠️ Не удалось загрузить файл.")
     else:
-        await msg.answer("Пожалуйста, отправьте файл в формате GeoJSON.")
+        await msg.answer("⚠️ Пожалуйста, отправьте файл в формате GeoJSON.")
 
 async def process_zones(json_data, msg: Message, state: FSMContext):
     # Очищаем старые данные
     scouts = Users.select()
     for s in scouts:
         if s.zonefk != None:
-            await msg.bot.send_message(chat_id=s.id, text="Было сделано обновление зон, войдите на слот еще раз!", reply_markup=kb.start_finish_kb)
+            await msg.bot.send_message(chat_id=s.id, text="⚠️ Было сделано обновление зон, войдите на слот еще раз!", reply_markup=kb.start_finish_kb)
         s.zonefk = None
         s.save()
     Coordinate.delete().execute()  # Удаляем все старые координаты
@@ -155,12 +155,12 @@ async def process_zones(json_data, msg: Message, state: FSMContext):
             try:
                 zone_name_data = feature['properties']['description'].strip()
             except:
-                await msg.answer("Есть зона без описания, перепроверьте файл!", reply_markup=kb.admin_start_kb)
+                await msg.answer("⚠️ Есть зона без описания, перепроверьте файл!", reply_markup=kb.admin_start_kb)
                 await state.clear()
                 return
             
             if ',' not in zone_name_data:
-                await msg.answer("Есть зона без деления на АО (должна быть запятая), перепроверьте файл!", reply_markup=kb.admin_start_kb)
+                await msg.answer("⚠️ Есть зона без деления на АО (должна быть запятая), перепроверьте файл!", reply_markup=kb.admin_start_kb)
                 await state.clear()
                 return
 
@@ -183,30 +183,30 @@ async def process_zones(json_data, msg: Message, state: FSMContext):
         await msg.answer("Новые данные успешно загружены в базу данных.", reply_markup=kb.admin_start_kb)
 
     except Exception as e:
-        await msg.answer(f"Произошла ошибка при обработке данных: {str(e)}")
+        await msg.answer(f"⚠️ Произошла ошибка при обработке данных: {str(e)}")
 
-@router.message(lambda msg: msg.text == 'Отправить задание')
+@router.message(lambda msg: msg.text == '✉️ Отправить задание')
 async def handler_create_task(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) in ['sScout', 'admin']:
         await state.set_state(TaskState.waiting_for_task)
         await msg.answer("Отправьте сообщение с заданием, ОБЯЗАТЕЛЬНО в нем должны фигурировать координаты через запятую!", reply_markup=kb.admin_back_kb)
     else:
-        await msg.answer("Вы не имеете прав на это действие!")
+        await msg.answer("🚫 Вы не имеете прав на это действие!")
 
 @router.message(TaskState.waiting_for_task)
 async def handler_send_task(msg: Message, state: FSMContext):
-    if msg.text == 'Назад':
+    if msg.text == '🔙 Назад':
         await msg.answer("Выберите опцию по кнопкам ниже", reply_markup=kb.coord_start_kb)
         await state.clear()
         return
     
-    if not msg.text:
-        await msg.answer("Это сообщение не содержит текста. Пожалуйста, отправьте текстовое сообщение с координатами.")
+    if not msg.text and not msg.caption:
+        await msg.answer("⚠️ Это сообщение не содержит текста. Пожалуйста, отправьте текстовое сообщение с координатами.")
         return
-    text_of_task = msg.text.strip()
+    text_of_task = (msg.text or msg.caption).strip()
     point = find_coords(text_of_task)
     if not point:
-        await msg.answer("Это сообщение не содержит координат. Пожалуйста, отправьте текстовое сообщение с координатами.")
+        await msg.answer("⚠️ Это сообщение не содержит координат. Пожалуйста, отправьте текстовое сообщение с координатами.")
         return
 
     found = False
@@ -227,20 +227,32 @@ async def handler_send_task(msg: Message, state: FSMContext):
     if found:
         scouts_on_zone = Users.select().where(Users.zonefk == found_zone.id)
         if len(scouts_on_zone) == 0:
-            await msg.answer(f"На зоне {found_zone.name} нет ни одного активного скаута в данный момент времени.", reply_markup=kb.coord_start_kb)
+            await msg.answer(f"⚠️ На зоне {found_zone.name} нет ни одного активного скаута в данный момент времени.", reply_markup=kb.coord_start_kb)
             await state.clear()
             return
         
-        new_task = Task.create(id=create_hash_for_task(), admin_chat=msg.from_user.id)
+        hash_of_task = create_hash_for_task()
+        new_task = Task.create(id=hash_of_task, admin_chat=msg.from_user.id, msg_text=text_of_task)
+        string_coords = str(point[0]) + ', ' + str(point[1])
+        sent_message = await msg.answer(
+                f"Ваше сообщение\n{'-'*30}\n<i>{text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')}</i>\n{'-'*30}\nотправлено скаутам на зоне!\n\n"
+                f"<b>Номер задания: #{new_task.id}\n</b>"
+                f"<b>Статус принято:       ❌❌❌</b>\n<b>Статус выполнено:\t❌❌❌</b>",
+                parse_mode="HTML"
+            )
+
+        # Сохраняем message_id в уже созданной записи
+        new_task.msg_status = sent_message.message_id
+        new_task.msg_orig = msg.message_id
+        new_task.save()
+
         for s in scouts_on_zone:
             if msg.photo:
-                await msg.bot.send_photo(chat_id=s.id, photo=msg.photo[-1].file_id, caption=(msg.caption or msg.text)+f"\n#{new_task.id}", reply_markup=kb.reply_markup)
+                await msg.bot.send_photo(chat_id=s.id, photo=msg.photo[-1].file_id, caption=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"\n#{new_task.id}", reply_markup=kb.reply_markup)
             else:
-                await msg.bot.send_message(chat_id=s.id, text=msg.text+f"#{new_task.id}", reply_markup=kb.reply_markup)
-
-        await msg.answer(f"Ваше сообщение `{text_of_task}` отправлено скаутам на зоне!\n#{new_task.id}", reply_markup=kb.coord_start_kb)
+                await msg.bot.send_message(chat_id=s.id, text=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"\n#{new_task.id}", reply_markup=kb.reply_markup)
     else:
-        await msg.answer("Точка не принадлежит ни одной зоне!", reply_markup=kb.coord_start_kb)
+        await msg.answer("⚠️ Точка не принадлежит ни одной зоне!", reply_markup=kb.coord_start_kb)
     await state.clear()
 
 class IsForwardedFilter(BaseFilter):
@@ -249,15 +261,17 @@ class IsForwardedFilter(BaseFilter):
 
 @router.message(IsForwardedFilter())
 async def handle_forwarded_message(msg: Message):
-    if not (msg.text or msg.caption):
-        await msg.answer("Нет текста или фото.")
-        return
     if check_permission(msg.from_user.id) in ['sScout', 'admin']:
+
+        if not (msg.text or msg.caption):
+            await msg.answer("⚠️ Нет текста или фото.")
+            return
+        
         text_of_task = msg.text or msg.caption
         point = find_coords(text_of_task)
         if not point:
-            await msg.answer("Это сообщение не содержит координат. Пожалуйста, отправьте текстовое сообщение с координатами.\n"
-                             "координаты должны быть записаны через запятую")
+            await msg.answer("⚠️ Это сообщение не содержит координат. Пожалуйста, отправьте текстовое сообщение с координатами.\n"
+                            "координаты должны быть записаны через запятую")
             return
         
         found = False
@@ -278,44 +292,135 @@ async def handle_forwarded_message(msg: Message):
         if found:
             scouts_on_zone = Users.select().where(Users.zonefk == found_zone.id)
             if len(scouts_on_zone) == 0:
-                await msg.answer(f"На зоне {found_zone.name} нет ни одного активного скаута в данный момент времени.", reply_markup=kb.coord_start_kb)
+                await msg.answer(f"⚠️ На зоне {found_zone.name} нет ни одного активного скаута в данный момент времени.", reply_markup=kb.coord_start_kb)
                 return
 
             hash_of_task = create_hash_for_task()
-            new_task = Task.create(id=hash_of_task, admin_chat=msg.from_user.id)
-            await msg.answer(f"Ваше сообщение `{text_of_task}` отправлено скаутам на зоне!\n#{new_task.id}", reply_markup=kb.coord_start_kb)
+            new_task = Task.create(id=hash_of_task, admin_chat=msg.from_user.id, msg_text=text_of_task)
+            string_coords = str(point[0]) + ', ' + str(point[1])
+            sent_message = await msg.answer(
+                f"Ваше сообщение\n{'-'*30}\n<i>{text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')}</i>\n{'-'*30}\nотправлено скаутам на зоне!\n\n"
+                f"<b>Номер задания: #{new_task.id}\n</b>"
+                f"<b>Статус принято:       ❌❌❌</b>\n<b>Статус выполнено:\t❌❌❌</b>",
+                parse_mode="HTML"
+            )
+
+            # Сохраняем message_id в уже созданной записи
+            new_task.msg_status = sent_message.message_id
+            new_task.msg_orig = msg.message_id
+            new_task.save()
 
             for s in scouts_on_zone:
                 if msg.photo:
-                    await msg.bot.send_photo(chat_id=s.id, photo=msg.photo[-1].file_id, caption=(msg.caption or msg.text)+f"\n#{new_task.id}", reply_markup=kb.reply_markup)
+                    await msg.bot.send_photo(chat_id=s.id, photo=msg.photo[-1].file_id, caption=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"\n#{new_task.id}", reply_markup=kb.reply_markup)
                 else:
-                    await msg.bot.send_message(chat_id=s.id, text=msg.text+f"#{new_task.id}", reply_markup=kb.reply_markup)
+                    await msg.bot.send_message(chat_id=s.id, text=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"#{new_task.id}", reply_markup=kb.reply_markup)
         else:
-            await msg.answer("Точка не принадлежит ни одной зоне!", reply_markup=kb.coord_start_kb)
+            await msg.answer("⚠️ Точка не принадлежит ни одной зоне!", reply_markup=kb.coord_start_kb)
     else:
-        await msg.answer("Вы не имеете прав на это действие!")
+        await msg.answer("🚫 Вы не имеете прав на это действие!")
 
 @router.callback_query()
-async def hadle_callback(callback_query: types.CallbackQuery):
+async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    id_task = find_task_id(callback_query.message.text or callback_query.message.caption)
+    task_object = Task.get(id=id_task)
+    cords = find_coords(task_object.msg_text)
+    cords_str = str(cords[0]) + ', ' + str(cords[1])
+
     if callback_query.data == "handler_accept":
-        id_task = find_task_id(callback_query.message.text or callback_query.message.caption)
-        task_object = Task.get(id=id_task)
         if task_object.scoutfk == None:
-            await callback_query.message.answer(f"Вы приняли задание! #{id_task}")
+            #await callback_query.message.answer(f"Вы приняли задание! #{id_task}")
             task_object.scoutfk = callback_query.from_user.id
             task_object.msg_id_scout = callback_query.message.message_id
             task_object.save()
 
-            await callback_query.bot.send_message(chat_id=task_object.admin_chat, text=f"Ваше задание #{id_task} принято в работу.")
-        else:
-            await callback_query.message.answer("Это задание уже было взято в работу другим скаутом (или вами).")
+            if callback_query.message.text:
+                await callback_query.message.bot.edit_message_text(
+                    chat_id = task_object.scoutfk.id,
+                    message_id = task_object.msg_id_scout,
+                    text = task_object.msg_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n<b>Вы приняли задание! #{id_task}📌</b>",
+                    parse_mode="HTML",
+                    reply_markup = kb.reply_markup_done
+                )
+            else:
+                await callback_query.message.bot.edit_message_caption(
+                    chat_id = task_object.scoutfk.id,
+                    message_id = task_object.msg_id_scout,
+                    caption = task_object.msg_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n<b>Вы приняли задание! #{id_task}📌</b>",
+                    parse_mode="HTML",
+                    reply_markup = kb.reply_markup_done
+                )
 
-@router.message(lambda msg: msg.text == 'Выйти на слот')
+            try:
+                text_of_task = task_object.msg_text
+                coords = find_coords(text_of_task)
+                string_coords = str(coords[0]) + ', ' + str(coords[1])
+                await callback_query.message.bot.edit_message_text(
+                chat_id=task_object.admin_chat,
+                message_id=task_object.msg_status,
+                text=(
+                        f"Ваше сообщение\n{'-'*30}\n<i>{text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')}</i>\n{'-'*30}\nотправлено скаутам на зоне!\n\n"
+                        f"<b>Номер задания: #{task_object.id}\n</b>"
+                        f"<b>Статус принято:       ✅✅✅</b>\n<b>Статус выполнено:\t❌❌❌</b>"
+                    ),
+                parse_mode="HTML"
+                )
+            except Exception as e:
+                print(e)
+                return
+
+            await callback_query.bot.send_message(chat_id=task_object.admin_chat, text=f"Ваше задание #{id_task} принято в работу.", reply_to_message_id=task_object.msg_orig, reply_markup=kb.coord_start_kb)
+        else:
+            await callback_query.message.answer("⚠️ Это задание уже было взято в работу другим скаутом (или вами).")
+            return
+
+    if callback_query.data == 'handler_done_task':
+        if callback_query.message.text:
+            await callback_query.message.bot.edit_message_text(
+                chat_id = task_object.scoutfk.id,
+                message_id = task_object.msg_id_scout,
+                text = task_object.msg_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n#{id_task}\n\n<b>Отправьте фото-подтверждение (можно добавить и текст)📋</b>",
+                parse_mode="HTML",
+                reply_markup = kb.reply_markup_back
+            )
+        else:
+            await callback_query.message.bot.edit_message_caption(
+                chat_id = task_object.scoutfk.id,
+                message_id = task_object.msg_id_scout,
+                caption = task_object.msg_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n#{id_task}\n\n<b>Отправьте фото-подтверждение (можно добавить и текст)📋</b>",
+                parse_mode="HTML",
+                reply_markup = kb.reply_markup_back
+            )
+        await state.update_data(task_object=task_object)
+        await state.set_state(DoneTaskState.waiting_for_photo)
+    
+    if callback_query.data == 'handler_done_back':
+        if callback_query.message.text:
+            await callback_query.message.bot.edit_message_text(
+                chat_id = task_object.scoutfk.id,
+                message_id = task_object.msg_id_scout,
+                text = task_object.msg_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n<b>Вы приняли задание! #{id_task}📌</b>",
+                parse_mode="HTML",
+                reply_markup = kb.reply_markup_done
+            )
+        else:
+            await callback_query.message.bot.edit_message_caption(
+                chat_id = task_object.scoutfk.id,
+                message_id = task_object.msg_id_scout,
+                caption = task_object.msg_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n<b>Вы приняли задание! #{id_task}📌</b>",
+                parse_mode="HTML",
+                reply_markup = kb.reply_markup_done
+            )
+        
+        await state.clear()
+        return
+
+@router.message(lambda msg: msg.text == '🚀 Выйти на слот')
 async def handler_enter_slot(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) == 'scout':
         zones = Zone.select()
         if len(zones) == 0:
-            await msg.answer("В данный момент в базе данных нет зон", reply_markup=kb.start_finish_kb)
+            await msg.answer("⚠️ В данный момент в базе данных нет зон", reply_markup=kb.start_finish_kb)
             await state.clear()
             return
         zones_ao = [z.ao for z in zones]
@@ -329,13 +434,13 @@ async def handler_enter_slot(msg: Message, state: FSMContext):
 @router.message(SlotState.waiting_for_ao)
 async def handler_choose_ao(msg: Message, state: FSMContext):
     ao = msg.text.strip()
-    if ao == 'Назад':
+    if ao == '🔙 Назад':
         await msg.answer("Выберите опцию по кнопкам ниже.", reply_markup=kb.start_finish_kb)
         await state.clear()
         return
     ao_bd = [z.ao for z in Zone.select()]
     if ao not in ao_bd:
-        await msg.answer("Вы выбрали несуществующую АО! Пользуйтесь клавиатурой", reply_markup=kb.start_finish_kb)
+        await msg.answer("⚠️ Вы выбрали несуществующую АО! Пользуйтесь клавиатурой", reply_markup=kb.start_finish_kb)
         await state.clear()
         return
     zones_obj = Zone.select().where(Zone.ao == ao)
@@ -349,84 +454,75 @@ async def handler_choose_ao(msg: Message, state: FSMContext):
 
 @router.message(SlotState.waiting_for_zone)
 async def hadler_start_slot(msg: Message, state: FSMContext):
-    if msg.text == "Назад":
+    if msg.text == "🔙 Назад":
         await state.clear()
         await handler_enter_slot(msg, state)
         return
-    #try:
-    zone_msg = msg.text.strip()
-    print(zone_msg)
-    zone_object = Zone.select().where(Zone.name == zone_msg).first()
-    zone_object.status = 'active'
-    user_scout = Users.get(id=msg.from_user.id)
-    user_scout.zonefk = zone_object.id
-    zone_object.save()
-    user_scout.save()
-    await msg.answer(f"Вы вышли на слот {zone_msg}", reply_markup=kb.start_finish_kb)
-    await state.clear()
-    # except Exception as e:
-    #     await msg.answer(f"Вы выбрали зону не из списка, попробуйте еще раз используя /enter{str(e)}")
+    try:
+        zone_msg = msg.text.strip()
+        zone_object = Zone.select().where(Zone.name == zone_msg).first()
+        zone_object.status = 'active'
+        user_scout = Users.get(id=msg.from_user.id)
+        user_scout.zonefk = zone_object.id
+        zone_object.save()
+        user_scout.save()
+        await msg.answer(f"Вы вышли на слот {zone_msg}", reply_markup=kb.start_finish_kb)
+        await state.clear()
+    except:
+        await msg.answer(f"⚠️ Вы выбрали зону не из списка, попробуйте еще раз.")
 
-@router.message(lambda msg: msg.text == "Уйти со слота")
+@router.message(lambda msg: msg.text == "🏠 Уйти со слота")
 async def handler_exit_slot(msg: Message, state: FSMContext):
     await state.clear()
     if check_permission(msg.from_user.id) == 'scout':
         user = Users.get(id=msg.from_user.id)
         if not user.zonefk:
-            await msg.answer("Вы еще не вышли на слот.")
+            await msg.answer("⚠️ Вы еще не вышли на слот.")
             return
         user.zonefk = None
         user.save()
         await msg.answer("Вы вышли со слота.", reply_markup=kb.start_finish_kb)
 
-@router.message(lambda msg: msg.text == "Мои задания")
-async def handler_show_tasks(msg: Message, state: FSMContext):
-    await state.clear()
-    scout_tasks = Task.select().where(Task.scoutfk == msg.from_user.id)
-    if scout_tasks:
-        task_list = []
-        kb.task_list_kb.keyboard.clear()
-        task_list.append(kb.btnBack)
-        for task in scout_tasks:
-            task_i = KeyboardButton(text="#"+str(task.id))
-            task_list.append(task_i)
-        kb.task_list_kb.keyboard.append(task_list)
-        await msg.answer("Выберете выполненую задачу:", reply_markup=kb.task_list_kb)
-        await state.set_state(DoneTaskState.waiting_for_task)
-    else:
-        await msg.answer("У вас нет активных задач!")
-
-@router.message(DoneTaskState.waiting_for_task)
-async def handler_get_task(msg: Message, state: FSMContext):
-    if msg.text == "Назад":
-        await msg.answer("Выберите нужное действие.", reply_markup=kb.start_finish_kb)
-        await state.clear()
-        return
-    try:
-        task_object = Task.get(id=msg.text[1:])
-        await msg.answer("Прикрепите фото-подтверждение (можно добавить и текст).", reply_markup=kb.only_back_kb)
-        await state.update_data(task_object=task_object)
-        await state.set_state(DoneTaskState.waiting_for_photo)
-    except:
-        await msg.answer("Вы выбрали неверное задание! Пользуйтесь клавиатурой")
-        return
-
 @router.message(DoneTaskState.waiting_for_photo)
 async def handler_get_task(msg: Message, state: FSMContext):
-    if msg.text == "Назад":
-        await state.set_state(DoneTaskState.waiting_for_task)
-        await msg.answer("Выберете выполненую задачу:", reply_markup=kb.task_list_kb)
-        return
-
     data = await state.get_data()
     task_object = data.get("task_object")
+    text_of_task = task_object.msg_text
+    coords = find_coords(text_of_task)
+    string_coords = str(coords[0]) + ', ' + str(coords[1])
 
     if not msg.photo:
-        await msg.answer("Вы не прикрепили фото, пожалуйста прикрепите фото.")
+        await msg.answer("⚠️ Вы не прикрепили фото, пожалуйста прикрепите фото.")
         return
     else:
-        await msg.answer("Ваши результаты отправлены координатору", reply_markup=kb.start_finish_kb)
-        await msg.bot.forward_message(chat_id=task_object.admin_chat, from_chat_id=msg.chat.id, message_id=msg.message_id)
+        await msg.answer(f"Ваши результаты по заданию #{task_object.id} отправлены координатору ✅", reply_markup=kb.start_finish_kb, reply_to_message_id=task_object.msg_id_scout)
+        await msg.bot.copy_message(chat_id=task_object.admin_chat, from_chat_id=msg.chat.id, message_id=msg.message_id, reply_to_message_id=task_object.msg_orig)
+        await msg.bot.edit_message_text(
+            chat_id=task_object.admin_chat,
+            message_id=task_object.msg_status,
+            text=(
+                f"Ваше сообщение\n{'-'*30}\n`{text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')}`\n{'-'*30}\nотправлено скаутам на зоне!\n\n"
+                f"<b>Номер задания: #{task_object.id}</b>\n"
+                f"<b>Статус принято:       ✅✅✅</b>\n<b>Статус выполнено:\t✅✅✅</b>"
+                ),
+            parse_mode="HTML"
+            )
+        try:
+            await msg.bot.edit_message_text(
+                chat_id=task_object.scoutfk.id,
+                message_id=task_object.msg_id_scout,
+                text=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>') + f'\n\n<b>Задание #{task_object.id} выполнено🎖️</b>',
+                parse_mode="HTML",
+                reply_markup=None
+            )
+        except:
+            await msg.bot.edit_message_caption(
+                chat_id=task_object.scoutfk.id,
+                message_id=task_object.msg_id_scout,
+                caption=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>') + f'\n\n<b>Задание #{task_object.id} выполнено🎖️</b>',
+                parse_mode="HTML",
+                reply_markup=None
+            )
         await msg.bot.send_message(chat_id=task_object.admin_chat, text=f"Задание #{task_object.id} выполнено скаутом.")
 
         Task.delete().where(Task.id == task_object.id).execute()
