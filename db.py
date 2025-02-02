@@ -29,7 +29,7 @@ class Users(BaseModel):
     id = BigAutoField()
     role = TextField()
     tg_username = TextField()
-    zonefk = ForeignKeyField(column_name='zonefk', field='id', model=Zone, null=True)
+    working_status = BooleanField(null=True)
 
     class Meta:
         table_name = 'users'
@@ -39,9 +39,17 @@ class Task(BaseModel):
     msg_id_scout = BigIntegerField(null=True)
     msg_status = BigIntegerField(null=True)
     msg_text = TextField(null=True)
-    msg_orig = BigIntegerField(null=True)
+    coord_id = BigIntegerField(null=True)
+    coord_msg = BigIntegerField(null=True)
     scoutfk = ForeignKeyField(column_name='scoutfk', field='id', model=Users, null=True)
 
     class Meta:
         table_name = 'task'
+
+class Mm(BaseModel):
+    zonefk = ForeignKeyField(column_name='zonefk', field = 'id', model=Zone)
+    scoutfk = ForeignKeyField(column_name='scoutfk', field='id', model=Users)
+
+    class Meta:
+        table_name = 'mm'
 

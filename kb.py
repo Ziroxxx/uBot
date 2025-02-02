@@ -1,5 +1,5 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 btnBack = KeyboardButton(text="🔙 Назад")
 
@@ -12,16 +12,29 @@ btnStart = KeyboardButton(text="Старт")
 
 button1 = KeyboardButton(text="🚀 Выйти на слот")
 button2 = KeyboardButton(text="🏠 Уйти со слота")
+button3 = KeyboardButton(text="➕ Добавить слот")
+
+btnCoordinatorStart = KeyboardButton(text="🚀 Выйти на смену")
+btnCoordinatorEnd = KeyboardButton(text="🏠 Уйти со смены")
+btnCoordinatorSearch = KeyboardButton(text="🔎 Список")
+
+btnCoordinatorDelegate = InlineKeyboardButton(text="Делегировать", callback_data="handler_delegate")
+btnCoordinatorDeny = InlineKeyboardButton(text="Отменить", callback_data="handler_deny")
+btnCoordinatorBack = InlineKeyboardButton(text="Назад", callback_data="handler_coord_back")
+btnCoordinatorDenyBack = InlineKeyboardButton(text="Назад", callback_data="handler_deny_back")
+
+btnYes = KeyboardButton(text='Да')
+btnNo = KeyboardButton(text='Нет')
 
 btnScout = KeyboardButton(text="Скаут")
-btnsScout = KeyboardButton(text="Координатор")
+btnCoordinator = KeyboardButton(text="Координатор")
 btnAdmin = KeyboardButton(text="Администратор")
+btnBoss = KeyboardButton(text='Босс')
+btnsScout = KeyboardButton(text='СИТ')
 btnNoRole = KeyboardButton(text="non-role")
 
 btnAdmin1 = KeyboardButton(text="🔑 Назначить")
 btnAdmin2 = KeyboardButton(text="⚙️ Новая карта зон")
-
-btnCoordinator = KeyboardButton(text="✉️ Отправить задание")
 
 def create_dynamic_keyboard(button_texts, max_row_width=20):
     if not button_texts:  # Проверяем, чтобы список кнопок не был пустым
@@ -48,8 +61,8 @@ start_kb = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-coord_start_kb = ReplyKeyboardMarkup(
-    keyboard=[[btnCoordinator]],
+submit_kb = ReplyKeyboardMarkup(
+    keyboard=[[btnYes, btnNo]],
     resize_keyboard=True
 )
 
@@ -64,7 +77,7 @@ admin_back_kb = ReplyKeyboardMarkup(
 )
 
 role_kb = ReplyKeyboardMarkup(
-    keyboard=[[btnScout, btnsScout], [btnAdmin, btnNoRole], [btnBack]],
+    keyboard=[[btnScout, btnCoordinator], [btnAdmin, btnsScout], [btnBoss, btnNoRole], [btnBack]],
     resize_keyboard=True
 )
 
@@ -73,9 +86,19 @@ start_finish_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+scout_work_kb = ReplyKeyboardMarkup(
+    keyboard=[[button3, button2]],
+    resize_keyboard=True
+)
+
 task_list_kb = ReplyKeyboardMarkup(
     keyboard=[[]],
     resize_keyboard=True,
+)
+
+coordinator_kb = ReplyKeyboardMarkup(
+    keyboard=[[btnCoordinatorStart, btnCoordinatorEnd, btnCoordinatorSearch]],
+    resize_keyboard=True
 )
 
 reply_markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -89,3 +112,15 @@ reply_markup_done = InlineKeyboardMarkup(inline_keyboard=[
 reply_markup_back = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Назад", callback_data="handler_done_back")]
 ])
+
+reply_markup_problem = InlineKeyboardMarkup(
+    inline_keyboard = [[btnCoordinatorDelegate, btnCoordinatorDeny]]
+)
+
+reply_markup_problem_back = InlineKeyboardMarkup(
+    inline_keyboard = [[btnCoordinatorBack]]
+)
+
+reply_markup_deny_back = InlineKeyboardMarkup(
+    inline_keyboard = [[btnCoordinatorDenyBack]]
+)

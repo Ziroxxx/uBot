@@ -84,3 +84,53 @@ def create_hash_for_task():
                 flag = False
                 break
     return hash_of_task
+
+async def edit_msg(bot, cid, mid, eText, markup):
+    try:
+        return await bot.edit_message_text(
+            chat_id = cid,
+            message_id = mid,
+            text = eText,
+            reply_markup = markup,
+            parse_mode = "HTML"
+        )
+    except:
+        return await bot.edit_message_caption(
+            chat_id = cid,
+            message_id = mid,
+            caption = eText,
+            reply_markup = markup,
+            parse_mode = "HTML"
+        )
+
+async def send_msg(bot, cid, text, markup, photo):
+    try:
+       return await bot.send_photo(
+            caption = text,
+            photo = photo,
+            chat_id= cid,
+            parse_mode="HTML",
+            reply_markup = markup
+        )
+    except:
+        return await bot.send_message(
+            text =  text,
+            chat_id= cid,
+            parse_mode="HTML",
+            reply_markup = markup
+        )
+    
+async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task, errorText, mid, kb):
+    try:
+        return await msg.bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
+                                    from_chat_id = msg.chat.id, message_id=mid, 
+                                    caption=text_of_task + '\n\n' + errorText,
+                                    reply_markup = kb.reply_markup_problem,
+                                    parse_mode = "HTML"
+        )
+    except:
+        return await msg.bot.send_message(chat_id=coordinators[coordinator_sequence].id, 
+                                    text=text_of_task + '\n\n' + errorText,
+                                    reply_markup = kb.reply_markup_problem,
+                                    parse_mode = "HTML"
+        )

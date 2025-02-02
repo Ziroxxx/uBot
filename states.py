@@ -13,6 +13,12 @@ class TaskState(StatesGroup):
 class SlotState(StatesGroup):
     waiting_for_ao = State()
     waiting_for_zone = State()
+    waiting_for_submit = State()
 
 class DoneTaskState(StatesGroup):
     waiting_for_photo = State()
+
+class CoordinatorState(StatesGroup):
+    waiting_for_tag = State()
+    waiting_for_caption = State()
+    waiting_for_reason = State()
