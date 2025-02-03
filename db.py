@@ -53,3 +53,11 @@ class Mm(BaseModel):
     class Meta:
         table_name = 'mm'
 
+class boss_task(BaseModel):
+    id_boss = BigIntegerField()
+    id_msg = BigIntegerField()
+    id_task = ForeignKeyField(column_name='id_task', field='id', model=Task)
+
+    class Meta:
+        table_name = 'boss_task'
+
