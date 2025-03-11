@@ -681,6 +681,7 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
         working_coordinators = Users.select().where((Users.role == 'coordinator') & (Users.working_status == True) & ~(Users.id == msg.chat.id))
         if working_coordinators.exists():
             for task in danger_tasks:
+                await msg.bot.delete_message(chat_id=task.coord_id, message_id=task.coord_msg)
                 await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
                                     list(errorText.coordinator_errors.values())[task.err_id], task.admin_chat, task.msg_status, kb, task, working_coordinators)
         else:
