@@ -65,8 +65,11 @@ async def garbage_lost_tasks(bot):
                     try:
                         await send_msg(bot, index_list[i], errorText.no_time_accept_scout, None, None)
                     except:
-                        scout = Users.get(id=index_list[i])
-                        await banned_from_scout(bot, scout, task)
+                        try:
+                            scout = Users.get(id=index_list[i])
+                            await banned_from_scout(bot, scout, task)
+                        except:
+                            break
 
                 task.datetimestamp_sent = None
                 task.scouts = None
