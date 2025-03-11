@@ -525,6 +525,9 @@ async def hadler_start_slot(msg: Message, state: FSMContext):
     try:
         zone_msg = msg.text.strip()
         zone_object = Zone.select().where(Zone.name == zone_msg).first()
+        if Mm.select().where((Mm.scoutfk.id == msg.from_user.id) & (Mm.zonefk == zone_object)):
+            await msg.answer(errorText.alredy_in_zone)
+            return
         size_mm = Mm.select().order_by(Mm.id)
         id_to_create = 1
         for mm in size_mm:
