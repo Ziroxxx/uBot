@@ -377,17 +377,12 @@ def get_tasks_one_scout(scout_id):
             continue
 
         if task.scoutfk and task.scoutfk.id == scout_id:
-            remove_scout_from_list(task, scout_id)
             result.append(task)
             continue
 
         if str(scout_id) in scouts_messages_for_task and len(scouts_messages_for_task) == 2:
-            remove_scout_from_list(task, scout_id)
             result.append(task)
-        elif str(scout_id) in scouts_messages_for_task:
-            remove_scout_from_list(task, scout_id)
-            
-
+        
     return result
 
 def get_tasks_one_coordinator(coordinator_id):
@@ -462,6 +457,7 @@ async def banned_from_scout(bot, problem_scout, problem_task, coordinator_id=Non
         danger_tasks = get_tasks_one_scout(scout_to_processing.id)
 
         for task in danger_tasks:
+            remove_scout_from_list(task, scout_to_processing.id)
             await deleteCordTask(bot, task)
 
             if task.zone_id is not None:
