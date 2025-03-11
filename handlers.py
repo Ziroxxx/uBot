@@ -17,6 +17,8 @@ from text import *
 
 router = Router()
 coordinator_sequence = -1
+TASK_CALLBACK_DATA = ['handler_accept', 'handler_done_task', 'handler_done_back',
+                      'handler_delegate', 'handler_coord_back', 'handler_deny',  'handler_deny_back']
 
 def get_full_text_with_coords(text_of_task, error_text, cords_str):
     text_of_task = text_of_task.replace(cords_str, '<code>'+ cords_str +'</code>')
@@ -307,22 +309,24 @@ async def handle_forwarded_message(msg: Message):
 
 @router.callback_query()
 async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext):
-    id_task = find_task_id(callback_query.message.text or callback_query.message.caption)
-    if not id_task:
-        id_task = Task.get_or_none((Task.coord_msg == callback_query.message.message_id) & (Task.coord_id == callback_query.message.chat.id))
+    global TASK_CALLBACK_DATA
+    if callback_query.data in TASK_CALLBACK_DATA:
+        id_task = find_task_id(callback_query.message.text or callback_query.message.caption)
+        if not id_task:
+            id_task = Task.get_or_none((Task.coord_msg == callback_query.message.message_id) & (Task.coord_id == callback_query.message.chat.id))
 
-    task_object = Task.get(id=id_task)
-    text_of_task = task_object.msg_text
-    if task_object.err_id != None:
-        error_text = list(errorText.coordinator_errors.values())[task_object.err_id]
-    else:
-        error_text = ''
+        task_object = Task.get(id=id_task)
+        text_of_task = task_object.msg_text
+        if task_object.err_id != None:
+            error_text = list(errorText.coordinator_errors.values())[task_object.err_id]
+        else:
+            error_text = ''
 
-    cords = find_coords(task_object.msg_text)
-    if cords:
-        cords_str = str(cords[0]) + ', ' + str(cords[1])
-    else:
-        cords_str = ''
+        cords = find_coords(task_object.msg_text)
+        if cords:
+            cords_str = str(cords[0]) + ', ' + str(cords[1])
+        else:
+            cords_str = ''
 
     if callback_query.data == "handler_accept":
         if task_object.scoutfk == None:
@@ -650,18 +654,42 @@ async def handler_coord_start(msg: Message):
         await msg.answer('🚫 Вы не СИТ!')
 
 @router.message(lambda msg: msg.text == '🏠 Уйти со смены')
-async def handler_coord_end(msg: Message):
+async def handler_coord_end(msg: Message, state: FSMContext):
     if check_permission(msg.from_user.id) == 'coordinator':
         user = Users.get(id=msg.from_user.id)
         if not user.working_status:
             await msg.answer('Вы не выходили на смену!')
             return
         danger_tasks = get_tasks_one_coordinator(msg.chat.id)
+        if len(danger_tasks) > 0:
+            await msg.answer(errorText.coordinator_has_danger, reply_markup = kb.submit_kb)
+            await state.update_data(danger=danger_tasks)
+            await state.set_state(CoordinatorState.waiting_for_submit)
         user.working_status = False
         user.save()
         await msg.answer('Вы ушли со смены!')
     else:
         await msg.answer('🚫 Вы не СИТ!')
+
+@router.message(CoordinatorState.waiting_for_submit)
+async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
+    if msg.text == 'Да':
+        data = await state.get_data()
+        danger_tasks = data.get('danger')
+        working_coordinators = Users.select().where((Users.role == 'coordinator') & (Users.working_status == True) & ~(Users.id == msg.chat.id))
+        if working_coordinators.exists():
+            for task in danger_tasks:
+                await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
+                                    list(errorText.coordinator_errors.values())[task.err_id], task.admin_chat, task.msg_status, kb, task, working_coordinators)
+        else:
+            for task in danger_tasks:
+                await auto_cancel_task(msg.bot, task)
+        await msg.answer('Вы ушли со смены!')
+        await state.clear()
+    else:
+        await msg.answer('Вы остались на смене!')
+        await state.clear()
+        return
 
 @router.message(lambda msg: msg.text == '🔎 Список')
 async def handler_search_scouts(msg: Message):

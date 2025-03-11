@@ -147,7 +147,9 @@ async def send_msg(bot, cid, text, markup, photo, problem_task=None, coordinator
         else:
             await banned_from_scout(bot, user, problem_task, coordinator_id, message_orig_id)
     
-async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task, error_text, cid, mid, kb, task):
+async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task, error_text, cid, mid, kb, task, coordinator_list=None):
+    if coordinator_list is None:
+        coordinator_list = []
     try:
         try:
             sent = await msg.bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
@@ -173,6 +175,7 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             task.save()
             return sent
     except TelegramForbiddenError:
+        coordinator_list = filter(lambda x: x != coordinators[coordinator_sequence].id, coordinator_list)
         await banned_from_coordinator(msg.bot, coordinators[coordinator_sequence].id, task, msg.message_id)
 
 async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, cid, mid, task):
