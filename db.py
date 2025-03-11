@@ -41,6 +41,13 @@ class Task(BaseModel):
     msg_text = TextField(null=True)
     coord_id = BigIntegerField(null=True)
     coord_msg = BigIntegerField(null=True)
+    err_id = IntegerField(null=True)
+    scouts = TextField(null=True)
+    zone_id = IntegerField(null=True)
+
+    datetimestamp_sent = DateTimeField(null=True)
+    datetimestamp_accepted = DateTimeField(null=True)
+
     scoutfk = ForeignKeyField(column_name='scoutfk', field='id', model=Users, null=True)
 
     class Meta:

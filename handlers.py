@@ -3,12 +3,10 @@ from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import BaseFilter
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import KeyboardButton
 
 import aiohttp
 import json
-import random
+import datetime
 
 from db import *
 from states import *
@@ -19,6 +17,12 @@ from text import *
 
 router = Router()
 coordinator_sequence = -1
+
+def get_full_text_with_coords(text_of_task, error_text, cords_str):
+    text_of_task = text_of_task.replace(cords_str, '<code>'+ cords_str +'</code>')
+    if error_text:
+        return text_of_task + '\n\n' + error_text
+    return text_of_task
 
 @router.message(Command("start"))
 async def start_handler(msg: Message, state: FSMContext):
@@ -209,12 +213,20 @@ class IsForwardedFilter(BaseFilter):
 async def handle_forwarded_message(msg: Message):
     if check_permission(msg.from_user.id) in ['sScout', 'admin']:
         global coordinator_sequence
+        local_coordinator_sequence = coordinator_sequence
         coordinator_sequence += 1
         coordinators = Users.select().where(Users.working_status == True)
         if len(coordinators) > 1:
             coordinator_sequence %= len(coordinators)
         else:
             coordinator_sequence = 0
+
+        local_coordinator_sequence = coordinator_sequence
+
+        try:
+            print(local_coordinator_sequence, coordinators[local_coordinator_sequence].tg_username)
+        except:
+            pass
 
         text_of_task = msg.text or msg.caption
         point = find_coords(text_of_task)
@@ -226,23 +238,12 @@ async def handle_forwarded_message(msg: Message):
             return
         
         if not point:
-            string_coords = ''
-            try:
-                sent_coordinator =await send2Coordinator(
-                    msg=msg,
-                    coordinators=coordinators,
-                    coordinator_sequence=coordinator_sequence,
-                    text_of_task=text_of_task,
-                    errorText=errorText.no_coordinates,
-                    mid=msg.message_id,
-                    kb=kb
-                )
-                new_task.coord_id = coordinators[coordinator_sequence].id
-                new_task.coord_msg = sent_coordinator.message_id
-                new_task.save()
-            except:
+            if len(coordinators) == 0:
                 await msg.answer(errorText.no_coordinator)
                 return
+            
+            string_coords = ''
+            await send2Coordinator(msg, coordinators, local_coordinator_sequence, text_of_task, errorText.coordinator_errors['no_coordinates'], msg.from_user.id, msg.message_id, kb, new_task)
         else:
             string_coords = str(point[0]) + ', ' + str(point[1])
             found = False
@@ -261,58 +262,46 @@ async def handle_forwarded_message(msg: Message):
                     found_zone = p
                     break
             if found:
+                new_task.zone_id = found_zone.id
+                new_task.save()
                 scouts_on_zone = Users.select().join(Mm, on=(Users.id == Mm.scoutfk)).where(Mm.zonefk == found_zone.id)
                 if len(scouts_on_zone) == 0:
-                    try:
-                        sent_coordinator =await send2Coordinator(
-                            msg=msg,
-                            coordinators=coordinators,
-                            coordinator_sequence=coordinator_sequence,
-                            text_of_task=text_of_task.replace(string_coords, '<code>' + string_coords + '</code>'),
-                            errorText=errorText.no_active_scout(found_zone.name),
-                            mid=msg.message_id,
-                            kb=kb
-                        )
-                        new_task.coord_id = coordinators[coordinator_sequence].id
-                        new_task.coord_msg = sent_coordinator.message_id
-                        new_task.save()
-                    except:
+                    if len(coordinators) == 0:
                         await msg.answer(errorText.no_coordinator)
                         return
+                    
+                    await send2Coordinator(msg, coordinators, local_coordinator_sequence, text_of_task, errorText.coordinator_errors['no_active_scout'], msg.from_user.id, msg.message_id, kb, new_task)
+
+                scouts_messages_list = ''
                 for s in scouts_on_zone:
                     if msg.photo:
-                        await msg.bot.send_photo(chat_id=s.id, photo=msg.photo[-1].file_id, caption=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"\n#{new_task.id}", reply_markup=kb.reply_markup)
+                        sent_scout = await send_msg(msg.bot, s.id, text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"\n#{new_task.id}", kb.reply_markup, msg.photo[-1].file_id, new_task, None, msg.message_id)
                     else:
-                        await msg.bot.send_message(chat_id=s.id, text=text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"#{new_task.id}", reply_markup=kb.reply_markup)
+                        sent_scout = await send_msg(msg.bot, s.id, text_of_task.replace(string_coords, '<code>'+string_coords+'</code>')+f"\n#{new_task.id}", kb.reply_markup, None, new_task, None, msg.message_id)
+                    if sent_scout is not None:
+                        scouts_messages_list += f' {s.id} {sent_scout.message_id}'
+                        new_task.datetimestamp_sent = datetime.datetime.now()
+                        new_task.scouts = scouts_messages_list
+                        new_task.save()
             else:
-                try:
-                    sent_coordinator =await send2Coordinator(
-                        msg=msg,
-                        coordinators=coordinators,
-                        coordinator_sequence=coordinator_sequence,
-                        text_of_task=text_of_task.replace(string_coords, '<code>' + string_coords + '</code>'),
-                        errorText=errorText.unknown_point,
-                        mid=msg.message_id,
-                        kb=kb
-                    )
-                    new_task.coord_id = coordinators[coordinator_sequence].id
-                    new_task.coord_msg = sent_coordinator.message_id
-                    new_task.save()
-                except:
+                if len(coordinators) == 0:
                     await msg.answer(errorText.no_coordinator)
                     return
-            
-        sent_message = await send_msg(msg.bot, msg.chat.id, msgStatusText.first_stage(text_of_task, string_coords, new_task.id), None, msg.photo[-1].file_id)
-        await msg.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
+                
+                await send2Coordinator(msg, coordinators, local_coordinator_sequence, text_of_task, errorText.coordinator_errors['unknown_point'], msg.from_user.id, msg.message_id, kb, new_task)
+        
+        if Task.select().where(Task.id == new_task.id).exists():
+            sent_message = await send_msg(msg.bot, msg.chat.id, msgStatusText.first_stage(text_of_task, string_coords, new_task.id), None, msg.photo[-1].file_id)
+            await msg.bot.delete_message(chat_id=msg.chat.id, message_id=msg.message_id)
 
-        bosses = Users.select().where(Users.role == 'boss')
-        for boss in bosses:
-            sent_boss = await send_msg(msg.bot, boss.id, msgStatusText.first_stage(text_of_task, string_coords, new_task.id), None, msg.photo[-1].file_id)
-            boss_task.create(id_boss=boss.id, id_msg = sent_boss.message_id, id_task = new_task.id)
+            bosses = Users.select().where(Users.role == 'boss')
+            for boss in bosses:
+                sent_boss = await send_msg(msg.bot, boss.id, msgStatusText.first_stage(text_of_task, string_coords, new_task.id), None, msg.photo[-1].file_id)
+                boss_task.create(id_boss=boss.id, id_msg = sent_boss.message_id, id_task = new_task.id)
 
-        # Сохраняем message_id в уже созданной записи
-        new_task.msg_status = sent_message.message_id
-        new_task.save()
+            # Сохраняем message_id в уже созданной записи
+            new_task.msg_status = sent_message.message_id
+            new_task.save()
     else:
         await msg.answer(errorText.no_rights)
 
@@ -320,10 +309,15 @@ async def handle_forwarded_message(msg: Message):
 async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext):
     id_task = find_task_id(callback_query.message.text or callback_query.message.caption)
     if not id_task:
-        id_task = Task.get_or_none((Task.coord_msg == callback_query.message.message_id) & (Task.coord_id == callback_query.message.chat.id)) 
+        id_task = Task.get_or_none((Task.coord_msg == callback_query.message.message_id) & (Task.coord_id == callback_query.message.chat.id))
+
     task_object = Task.get(id=id_task)
-    text_of_task_CS = callback_query.message.text or callback_query.message.caption
-    text_of_task_A = task_object.msg_text
+    text_of_task = task_object.msg_text
+    if task_object.err_id != None:
+        error_text = list(errorText.coordinator_errors.values())[task_object.err_id]
+    else:
+        error_text = ''
+
     cords = find_coords(task_object.msg_text)
     if cords:
         cords_str = str(cords[0]) + ', ' + str(cords[1])
@@ -337,10 +331,11 @@ async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext)
             task_object.save()
 
             
-            new_text = text_of_task_CS.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n<b>Вы приняли задание! #{id_task}📌</b>"
+            new_text = get_full_text_with_coords(text_of_task, error_text, cords_str) + f"\n\n<b>Вы приняли задание! #{id_task}📌</b>"
             await edit_msg(callback_query.bot, task_object.scoutfk.id, task_object.msg_id_scout, new_text, kb.reply_markup_done)
             try:
-                await edit_msg(callback_query.bot, task_object.admin_chat, task_object.msg_status, msgStatusText.second_stage(text_of_task_A, cords_str, id_task), None)
+                #!!!!! Если СИТ забанил, то удаляем таск(и) и СИТа и еще кучу сообщений (пробегаться по его таскам и удалять что есть + информирование)
+                await edit_msg(callback_query.bot, task_object.admin_chat, task_object.msg_status, msgStatusText.second_stage(text_of_task, cords_str, id_task), None)
                 await callback_query.bot.send_message(chat_id=task_object.admin_chat, text=infoText.scout_accepted(id_task), reply_to_message_id=task_object.msg_status)
             except:
                 pass
@@ -348,62 +343,56 @@ async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext)
             bosses_messages = boss_task.select().where(boss_task.id_task == task_object.id)
             for boss in bosses_messages:
                 try:
-                    await edit_msg(callback_query.bot, boss.id_boss, boss.id_msg, msgStatusText.second_stage(text_of_task_A, cords_str, id_task), None)
+                    #!!!!! Если босс забанил, то просто удаляем босса
+                    await edit_msg(callback_query.bot, boss.id_boss, boss.id_msg, msgStatusText.second_stage(text_of_task, cords_str, id_task), None)
                 except:
                     pass
 
             if task_object.coord_id:
-                await edit_msg(callback_query.bot, task_object.coord_id, task_object.coord_msg, msgStatusText.second_stage(text_of_task_CS, cords_str, id_task), None)
-                await state.update_data(full_text = text_of_task_CS)
+                new_text = text_of_task + '\n\n' + error_text
+                #!!!!! удаляем из таска координатора и самого координатора (нужно перекидывать задачи на другого координатора)
+                await edit_msg(callback_query.bot, task_object.coord_id, task_object.coord_msg, msgStatusText.second_stage(new_text, cords_str, id_task), None)
         else:
             await callback_query.message.answer(errorText.already_in_use)
             return
 
     if callback_query.data == 'handler_done_task':
-        data = await state.get_data()
-        full_text = data.get('full_text') or text_of_task_A
-        new_text = full_text.replace(cords_str, '<code>'+cords_str+'</code>') + infoText.photo_prove(id_task)
+        new_text = get_full_text_with_coords(text_of_task, error_text, cords_str) + '\n' + infoText.photo_prove(id_task)
         await edit_msg(callback_query.bot, task_object.scoutfk.id, task_object.msg_id_scout, new_text, kb.reply_markup_back)
-        await state.update_data(task_object=task_object, full_text = full_text)
+        await state.update_data(task_object=task_object)
         await state.set_state(DoneTaskState.waiting_for_photo)
     
     if callback_query.data == 'handler_done_back':
-        data = await state.get_data() 
-        full_text = data.get('full_text') or text_of_task_A
-
-        new_text = full_text.replace(cords_str, '<code>'+cords_str+'</code>') + f"\n<b>Вы приняли задание! #{id_task}📌</b>"
+        new_text = get_full_text_with_coords(text_of_task, error_text, cords_str) + f"\n\n<b>Вы приняли задание! #{id_task}📌</b>"
         await edit_msg(callback_query.bot, task_object.scoutfk.id, task_object.msg_id_scout, new_text, kb.reply_markup_done)
         return
     
     if callback_query.data == 'handler_delegate':
-        new_text = text_of_task_CS.replace(cords_str, '<code>'+ cords_str +'</code>') + infoText.coordinator_tag_deligate
+        new_text = get_full_text_with_coords(text_of_task, error_text, cords_str) + infoText.coordinator_tag_deligate
         await edit_msg(callback_query.bot, task_object.coord_id, task_object.coord_msg, new_text, kb.reply_markup_problem_back)
         await state.update_data(text=callback_query.message.text or callback_query.message.caption, id_task=id_task, photo_id = callback_query.message.photo[-1].file_id)
         await state.set_state(CoordinatorState.waiting_for_tag)
 
     if callback_query.data == 'handler_coord_back':
-        data = await state.get_data()
-        full_text = data.get('text').replace(cords_str, '<code>' + cords_str + '</code>')
-        await edit_msg(callback_query.bot, task_object.coord_id, task_object.coord_msg, full_text, kb.reply_markup_problem)
+        new_text = get_full_text_with_coords(text_of_task, error_text, cords_str)
+        await edit_msg(callback_query.bot, task_object.coord_id, task_object.coord_msg, new_text, kb.reply_markup_problem)
         await state.clear()
 
     if callback_query.data == 'handler_deny':
-        new_text = text_of_task_CS.replace(cords_str, '<code>' + cords_str + '</code>') + '\n\n<b>Введите причину отказа...</b>'
+        new_text = get_full_text_with_coords(text_of_task, error_text, cords_str) + '\n\n<b>Введите причину отказа...</b>'
         await edit_msg(callback_query.bot, task_object.coord_id, callback_query.message.message_id, new_text, kb.reply_markup_deny_back)
-        await state.update_data(text=text_of_task_CS.replace(cords_str, '<code>' + cords_str + '</code>'), id_task=id_task)
+        await state.update_data(id_task=id_task)
         await state.set_state(CoordinatorState.waiting_for_reason)
     
     if callback_query.data == 'handler_deny_back':
-        data = await state.get_data()
-        textCS = data.get("text")
-        await edit_msg(callback_query.bot, task_object.coord_id, callback_query.message.message_id, textCS, kb.reply_markup_problem)
+        new_text = get_full_text_with_coords(text_of_task, error_text, cords_str)
+        await edit_msg(callback_query.bot, task_object.coord_id, callback_query.message.message_id, new_text, kb.reply_markup_problem)
         await state.clear()
 
 @router.message(CoordinatorState.waiting_for_reason)
 async def handler_deny_task(msg: Message, state: FSMContext):
     try:
         data = await state.get_data()
-        textCS = data.get("text")
         id_task = data.get("id_task")
 
         task_object = Task.get(id=id_task)
@@ -413,23 +402,30 @@ async def handler_deny_task(msg: Message, state: FSMContext):
             coords_str = str(coords[0]) + ', ' + str(coords[1])
         else:
             coords_str = ''
+        #!!!!! КРИТИЧНО СИТа и все связанное с ним нужно чистить!!!!
         await edit_msg(msg.bot, task_object.admin_chat, 
                        task_object.msg_status, 
-                       msgStatusText.first_stage(task_object.msg_text, coords_str, task_object.id) + f'\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {reason}</b>', None)
+                       msgStatusText.first_stage(task_object.msg_text, coords_str, task_object.id) + f'\n\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {reason}</b>', None)
         
-        new_text = textCS + f'\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {reason}</b>'
+        error_text = list(errorText.coordinator_errors.values())[task_object.err_id]
+        new_text = get_full_text_with_coords(task_object.msg_text, error_text, coords_str) + f'\n\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ:\n{reason}</b>'
         await edit_msg(msg.bot, msg.chat.id, task_object.coord_msg, new_text, None)
 
         bosses_messages = boss_task.select().where(boss_task.id_task == task_object.id)
         for boss in bosses_messages:
+            #!!!!! боссов тоже чистим
             await edit_msg(msg.bot, boss.id_boss, 
                             boss.id_msg,
-                            msgStatusText.first_stage(task_object.msg_text, coords_str, task_object.id) + f'\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {reason}</b>', None)
+                            msgStatusText.first_stage(task_object.msg_text, coords_str, task_object.id) + f'\n\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {reason}</b>', None)
 
         Task.delete().where(Task.id == task_object.id).execute()
+        await state.clear()
+        
     except Exception as e:
         print(str(e))
         await msg.answer("⚠️ Произошла ошибка при отмене задания!")
+        await state.clear()
+        return
 
 @router.message(CoordinatorState.waiting_for_tag)
 async def handler_waiting_stag(msg: Message, state: FSMContext):
@@ -466,12 +462,19 @@ async def handler_waiting_caption(msg: Message, state: FSMContext):
     else:
         text = full_text + f'\n\n<b>Это задание было отправлено координатором!</b>' + f'\n<b>Пояснение координатора:\n</b>{msg.text}\n#{id_task}'
 
-    await send_msg(msg.bot, scout_tgid, text, kb.reply_markup, photo_id)
+    #!!!!! Когда скаут ушел, то просто вежливо просим другой тег и удаляем этого скаута из бд (+ все таски скаута отправляются координаторам как "брошенные")
+    sent_scout = await send_msg(msg.bot, scout_tgid, text, kb.reply_markup, photo_id, task_object, msg.chat.id)
+
     coords = find_coords(text)
     coords_str = str(coords[0]) + ', ' + str(coords[1])
     if not coords_str:
         coords_str = ''
     await edit_msg(msg.bot, msg.chat.id, task_object.coord_msg, msgStatusText.first_stage(text, coords_str, id_task), None)
+    if sent_scout:
+        task_object.datetimestamp_sent = datetime.datetime.now()
+        task_object.scouts = f" {scout_tgid} {sent_scout.message_id}"
+        task_object.save()
+    await state.clear()
     
     
 
@@ -522,8 +525,13 @@ async def hadler_start_slot(msg: Message, state: FSMContext):
     try:
         zone_msg = msg.text.strip()
         zone_object = Zone.select().where(Zone.name == zone_msg).first()
-        size_mm = Mm.select()
-        scout_on_zone = Mm.create(id=len(size_mm)+1, zonefk=zone_object.id, scoutfk=msg.from_user.id)
+        size_mm = Mm.select().order_by(Mm.id)
+        id_to_create = 1
+        for mm in size_mm:
+            if mm.id != id_to_create:
+                break
+            id_to_create += 1
+        scout_on_zone = Mm.create(id=id_to_create, zonefk=zone_object.id, scoutfk=msg.from_user.id)
         scout_on_zone.save()
         await msg.answer(infoText.entered_slot(zone_msg), reply_markup=kb.scout_work_kb)
         await state.clear()
@@ -559,7 +567,7 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
             await state.clear()
         data = await state.get_data()
         user = data.get("user")
-        tasks = data.get("tasks")
+        tasks = get_tasks_one_scout(user.id)
 
         for task in tasks:
             cords = find_coords(task.msg_text)
@@ -569,17 +577,12 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
                 str_cords = ''
             coordinator_sequence += 1
             coordinator_sequence %= len(coordinators)
-            sent_coordinator = await send2Coordinator(
-                msg,
-                coordinators,
-                coordinator_sequence,
-                task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'),
-                errorText.scout_leaved,
-                task.msg_id_scout,
-                kb
-            )
-            task.coord_id = coordinators[coordinator_sequence].id
-            task.coord_msg = sent_coordinator.message_id
+            
+            msg_id_scout = task.msg_id_scout or int(task.scouts.split()[1])
+            await send2Coordinator(msg, coordinators, 0, task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'), errorText.coordinator_errors['scout_leaved'], msg.from_user.id, msg_id_scout, kb, task)
+            if not task.coord_id:
+                await msg.answer(errorText.no_active_coordinator)
+                return
             task.msg_id_scout = None
             task.scoutfk = None
             task.save()
@@ -593,9 +596,13 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
 async def handler_get_task(msg: Message, state: FSMContext):
     data = await state.get_data()
     task_object = data.get("task_object")
-    text_of_task_SC = data.get("full_text")
-    text_of_task_A = task_object.msg_text
-    coords = find_coords(text_of_task_SC)
+    text_of_task = task_object.msg_text
+    if task_object.err_id != None:
+        error_text = list(errorText.coordinator_errors.values())[task_object.err_id]
+    else:
+        error_text = ''
+
+    coords = find_coords(text_of_task)
     if coords:
         string_coords = str(coords[0]) + ', ' + str(coords[1])
     else:
@@ -605,20 +612,20 @@ async def handler_get_task(msg: Message, state: FSMContext):
         await msg.answer(errorText.no_photo)
         return
     else:
-        await msg.answer(infoText.task_scout_done(task_object.id), reply_markup=kb.start_finish_kb, reply_to_message_id=task_object.msg_id_scout)
+        await msg.answer(infoText.task_scout_done(task_object.id), reply_markup=kb.scout_work_kb, reply_to_message_id=task_object.msg_id_scout)
         await msg.bot.copy_message(chat_id=task_object.admin_chat, from_chat_id=msg.chat.id, message_id=msg.message_id, reply_to_message_id=task_object.msg_status)
-        await edit_msg(msg.bot, task_object.admin_chat, task_object.msg_status, msgStatusText.third_stage(text_of_task_A, string_coords, task_object.id), None)
+        await edit_msg(msg.bot, task_object.admin_chat, task_object.msg_status, msgStatusText.third_stage(text_of_task, string_coords, task_object.id), None)
         await edit_msg(msg.bot, task_object.scoutfk.id, task_object.msg_id_scout, 
-                       text_of_task_SC.replace(string_coords, '<code>'+string_coords+'</code>') + f'\n\n<b>Задание #{task_object.id} выполнено🎖️</b>',
+                       get_full_text_with_coords(text_of_task, error_text, string_coords) + f'\n\n<b>Задание #{task_object.id} выполнено🎖️</b>',
                         None)
         if task_object.coord_id:
-            await edit_msg(msg.bot, task_object.coord_id, task_object.coord_msg, msgStatusText.third_stage(text_of_task_SC, string_coords, task_object.id), None)
+            await edit_msg(msg.bot, task_object.coord_id, task_object.coord_msg, msgStatusText.third_stage(text_of_task + '\n\n' + error_text, string_coords, task_object.id), None)
             await msg.bot.copy_message(chat_id=task_object.coord_id, from_chat_id=msg.chat.id, message_id=msg.message_id, reply_to_message_id=task_object.coord_msg)
 
         await msg.bot.send_message(chat_id=task_object.admin_chat, text=f"Задание #{task_object.id} выполнено скаутом.")
         bosses_messages = boss_task.select().where(boss_task.id_task == task_object.id)
         for boss in bosses_messages:
-            await edit_msg(msg.bot, boss.id_boss, boss.id_msg, msgStatusText.third_stage(text_of_task_SC, string_coords, task_object.id), None)
+            await edit_msg(msg.bot, boss.id_boss, boss.id_msg, msgStatusText.third_stage(text_of_task, string_coords, task_object.id), None)
 
         Task.delete().where(Task.id == task_object.id).execute()
         boss_task.delete().where(boss_task.id_task == task_object.id).execute()
