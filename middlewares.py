@@ -350,7 +350,7 @@ async def auto_cancel_task(bot, task):
             coords_str = str(coords[0]) + ', ' + str(coords[1])
         else:
             coords_str = ''
-        new_text = msgStatusText.first_stage(task.msg_text, coords_str, task.id) + f'\n\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {errorText.coordinator_errors['cancel_task']}</b>'
+        new_text = msgStatusText.first_stage(task.msg_text, coords_str, task.id) + f"\n\n<b>ЗАДАНИЕ ОТМЕНЕНО ПО ПРИЧИНЕ: {errorText.coordinator_errors['cancel_task']}</b>"
         bosses = boss_task.select().where(boss_task.id_task == task.id)
         for boss in bosses:
             await edit_msg(bot, boss.id_boss, boss.id_msg, new_text, None)
