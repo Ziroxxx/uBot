@@ -663,7 +663,7 @@ async def handler_coord_end(msg: Message, state: FSMContext):
         danger_tasks = get_tasks_one_coordinator(msg.chat.id)
         if len(danger_tasks) > 0:
             await msg.answer(errorText.coordinator_has_danger, reply_markup = kb.submit_kb)
-            await state.update_data(danger=danger_tasks)
+            await state.update_data(danger=danger_tasks, user=user)
             await state.set_state(CoordinatorState.waiting_for_submit)
         else:
             user.working_status = False
@@ -677,6 +677,7 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
     if msg.text == 'Да':
         data = await state.get_data()
         danger_tasks = data.get('danger')
+        user = data.get('user')
         working_coordinators = Users.select().where((Users.role == 'coordinator') & (Users.working_status == True) & ~(Users.id == msg.chat.id))
         if working_coordinators.exists():
             for task in danger_tasks:
@@ -685,6 +686,8 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
         else:
             for task in danger_tasks:
                 await auto_cancel_task(msg.bot, task)
+        user.working_status = False
+        user.save()
         await msg.answer('Вы ушли со смены!', reply_kb=kb.coordinator_kb)
         await state.clear()
     else:
