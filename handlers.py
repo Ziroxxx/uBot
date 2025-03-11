@@ -596,7 +596,7 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
     else:
         for task in tasks:
             task.scouts = task.scouts + f" {user.id} {task.msg_id_scout or int(task.scouts.split()[task.scouts.split().index(str(user.id))+1])}"
-        tasks.save()
+            task.save()
         await msg.answer("Вы остались на слоте!", reply_markup=kb.start_finish_kb)
         await state.clear()
 
