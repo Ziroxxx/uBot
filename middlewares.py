@@ -175,7 +175,7 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             task.save()
             return sent
     except TelegramForbiddenError:
-        coordinator_list = filter(lambda x: x != coordinators[coordinator_sequence].id, coordinator_list)
+        coordinator_list = filter(lambda x: x != coordinators[coordinator_sequence], coordinator_list)
         await banned_from_coordinator(msg.bot, coordinators[coordinator_sequence].id, task, msg.message_id)
 
 async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, cid, mid, task):
