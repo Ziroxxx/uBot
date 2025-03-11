@@ -665,9 +665,10 @@ async def handler_coord_end(msg: Message, state: FSMContext):
             await msg.answer(errorText.coordinator_has_danger, reply_markup = kb.submit_kb)
             await state.update_data(danger=danger_tasks)
             await state.set_state(CoordinatorState.waiting_for_submit)
-        user.working_status = False
-        user.save()
-        await msg.answer('Вы ушли со смены!')
+        else:
+            user.working_status = False
+            user.save()
+            await msg.answer('Вы ушли со смены!', reply_markup=kb.coordinator_kb)
     else:
         await msg.answer('🚫 Вы не СИТ!')
 
@@ -684,10 +685,10 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
         else:
             for task in danger_tasks:
                 await auto_cancel_task(msg.bot, task)
-        await msg.answer('Вы ушли со смены!')
+        await msg.answer('Вы ушли со смены!', reply_kb=kb.coordinator_kb)
         await state.clear()
     else:
-        await msg.answer('Вы остались на смене!')
+        await msg.answer('Вы остались на смене!', reply_markup=kb.coordinator_kb)
         await state.clear()
         return
 
