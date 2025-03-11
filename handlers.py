@@ -656,7 +656,7 @@ async def handler_coord_end(msg: Message):
         if not user.working_status:
             await msg.answer('Вы не выходили на смену!')
             return
-        danger_tasks = get_tasks_one_coordinator(msg.from_chat.id)
+        danger_tasks = get_tasks_one_coordinator(msg.from_chat_id)
         user.working_status = False
         user.save()
         await msg.answer('Вы ушли со смены!')
