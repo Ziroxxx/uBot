@@ -567,7 +567,6 @@ async def handler_exit_slot(msg: Message, state: FSMContext):
 @router.message(SlotState.waiting_for_submit)
 async def handler_submit_exit(msg: Message, state: FSMContext):
     if msg.text == 'Да':
-        global coordinator_sequence
         coordinators = Users.select().where(Users.working_status == True)
         if not coordinators:
             await msg.answer(errorText.no_active_coordinator, reply_markup=kb.start_kb)
@@ -582,14 +581,15 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
                 str_cords = str(cords[0]) + ', ' + str(cords[1])
             else:
                 str_cords = ''
-            coordinator_sequence += 1
-            coordinator_sequence %= len(coordinators)
             
-            msg_id_scout = task.msg_id_scout or int(task.scouts.split()[1])
-            await send2Coordinator(msg, coordinators, 0, task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'), errorText.coordinator_errors['scout_leaved'], msg.from_user.id, msg_id_scout, kb, task)
-            if not task.coord_id:
-                await msg.answer(errorText.no_active_coordinator)
-                return
+            msg_id_scout = task.msg_id_scout or int(task.scouts.split()[task.scouts.split().index(str(user.id))+1])
+            remove_scout_from_list(task, user.id)
+            if coordinators.exists():
+                await msg.bot.delete_message(chat_id=user.id, message_id=msg_id_scout)
+                await send2Coordinator(msg, coordinators, 0, task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'), errorText.coordinator_errors['scout_leaved'], msg.from_user.id, msg_id_scout, kb, task, coordinators)
+            else:
+                await auto_cancel_task(msg.bot, task)
+
             task.msg_id_scout = None
             task.scoutfk = None
             task.save()
