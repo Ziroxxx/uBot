@@ -555,7 +555,7 @@ async def handler_exit_slot(msg: Message, state: FSMContext):
             await msg.answer(errorText.not_entered)
             return
         
-        tasks = Task.select().where(Task.scoutfk == user)
+        tasks = get_tasks_one_scout(user.id)
         if tasks:
             await msg.answer(errorText.scout_have_tasks, reply_markup=kb.submit_kb)
             await state.update_data(user=user, tasks=tasks)
@@ -573,7 +573,7 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
             await state.clear()
         data = await state.get_data()
         user = data.get("user")
-        tasks = get_tasks_one_scout(user.id)
+        tasks = data.get('tasks')
 
         for task in tasks:
             cords = find_coords(task.msg_text)
