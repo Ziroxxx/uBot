@@ -688,7 +688,7 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
                 await auto_cancel_task(msg.bot, task)
         user.working_status = False
         user.save()
-        await msg.answer('Вы ушли со смены!', reply_kb=kb.coordinator_kb)
+        await msg.answer('Вы ушли со смены!', reply_markup=kb.coordinator_kb)
         await state.clear()
     else:
         await msg.answer('Вы остались на смене!', reply_markup=kb.coordinator_kb)
