@@ -692,7 +692,7 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
                 else:
                     await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
                                             list(errorText.coordinator_errors.values())[task.err_id], 
-                                            task.coord_id, task.coord_msg, kb.reply_markup_problem, task, working_coordinators)
+                                            task.coord_id, task.coord_msg, kb, task, working_coordinators)
                 await msg.bot.delete_message(chat_id=task.coord_id, message_id=task.coord_msg)
             else:
                 await auto_cancel_task(msg.bot, task)
