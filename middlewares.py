@@ -351,6 +351,11 @@ async def auto_cancel_task(bot, task):
                     await bot.delete_message(chat_id=splited[i], message_id=splited[i+1])
                 except:
                     print('already deleted msg from scout')
+    if task.scoutfk is not None:
+        try:
+            bot.delete_message(chat_id=task.scoutfk.id, message_id=task.msg_id_scout)
+        except:
+            pass
 
     if task.msg_status != None:
         coords = find_coords(task.msg_text)

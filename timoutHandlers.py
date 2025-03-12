@@ -93,13 +93,14 @@ async def garbage_lost_tasks(bot):
                 except TelegramForbiddenError:
                     await banned_from_coordinator(bot, coordinators[COORDINATOR_SEQUENCE].id, task)
 
-                try:
-                    await bot.delete_message(chat_id=task.scoutfk.id, message_id=task.msg_id_scout)
-                except:
-                    pass
-                await send_msg(bot, task.scoutfk.id, errorText.no_time_done_scout, None, None)
                 task.scoutfk = None
                 task.msg_id_scout = None
                 task.save()
             else:
                 await auto_cancel_task(bot, task)
+
+            try:
+                await bot.delete_message(chat_id=task.scoutfk.id, message_id=task.msg_id_scout)
+            except:
+                pass
+            await send_msg(bot, task.scoutfk.id, errorText.no_time_done_scout, None, None)
