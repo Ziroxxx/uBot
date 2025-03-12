@@ -175,8 +175,7 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             task.save()
             return sent
     except TelegramForbiddenError:
-        coordinator_list = filter(lambda x: x != coordinators[coordinator_sequence], coordinator_list)
-        await banned_from_coordinator(msg.bot, coordinators[coordinator_sequence].id, task, msg.message_id)
+        await banned_from_coordinator(msg.bot, coordinators[coordinator_sequence].id, task, msg.message_id, coordinator_list)
 
 async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, cid, mid, task):
     try:
@@ -242,12 +241,13 @@ async def copyTaskTo(bot, from_chat, from_msg, to_chat, own_text=None, markup=No
 
 
 #---------------------ОБРАБОТКА_БАНОВ_И_ДЕЛЕГИРОВАНИЙ---------------------#
-async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_orig=None):
+async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_orig=None, coordinator_list=None):
     processed_users = set()
     queue = deque([user_id])  # Очередь пользователей для обработки
 
     while queue:
         user_id = queue.popleft()  # Берем следующего пользователя
+        user_object = Users.get_or_none(id=user_id)
         if user_id in processed_users:
             continue  # Пропускаем, если уже обработан
 
@@ -271,6 +271,7 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
                 await auto_cancel_task(bot, problem_task)
                 problem_task = None
 
+            coordinator_list = filter(lambda x: x != user_object, coordinator_list)
             Users.delete().where(Users.id == user_id).execute()
             continue  # Переходим к следующему пользователю
 
@@ -311,6 +312,7 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
                 await auto_cancel_task(bot, problem_task)
                 problem_task = None
 
+        coordinator_list = filter(lambda x: x != user_object, coordinator_list)
         Users.delete().where(Users.id == user_id).execute()
         print('process deleting coordinator finished')
 
