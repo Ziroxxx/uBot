@@ -247,7 +247,6 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
 
     while queue:
         user_id = queue.popleft()  # Берем следующего пользователя
-        user_object = Users.get_or_none(id=user_id)
         if user_id in processed_users:
             continue  # Пропускаем, если уже обработан
 
@@ -271,7 +270,7 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
                 await auto_cancel_task(bot, problem_task)
                 problem_task = None
 
-            coordinator_list = filter(lambda x: x != user_object, coordinator_list)
+            coordinator_list = filter(lambda x: x != user, coordinator_list)
             Users.delete().where(Users.id == user_id).execute()
             continue  # Переходим к следующему пользователю
 
@@ -312,7 +311,7 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
                 await auto_cancel_task(bot, problem_task)
                 problem_task = None
 
-        coordinator_list = filter(lambda x: x != user_object, coordinator_list)
+        coordinator_list = filter(lambda x: x != user, coordinator_list)
         Users.delete().where(Users.id == user_id).execute()
         print('process deleting coordinator finished')
 
@@ -347,7 +346,7 @@ async def auto_cancel_task(bot, task):
                 try:
                     await bot.delete_message(chat_id=splited[i], message_id=splited[i+1])
                 except:
-                    print('scout banned bot')
+                    print('already deleted msg from scout')
 
     if task.msg_status != None:
         coords = find_coords(task.msg_text)
