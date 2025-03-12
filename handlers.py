@@ -582,10 +582,9 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
             
             msg_id_scout = task.msg_id_scout or int(task.scouts.split()[task.scouts.split().index(str(user.id))+1])
             if len(coordinators) > 0:
-                print("len branch")
                 await msg.bot.delete_message(chat_id=user.id, message_id=msg_id_scout)
-                await send2Coordinator(msg, coordinators, 0, task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'), errorText.coordinator_errors['scout_leaved'], task.admin_chat, task.msg_status, kb, task, coordinators)
                 remove_scout_from_list(task, user.id)
+                await send2Coordinator(msg, coordinators, 0, task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'), errorText.coordinator_errors['scout_leaved'], task.admin_chat, task.msg_status, kb, task, coordinators)
             else:
                 print("second+ cancled branch")
                 await auto_cancel_task(msg.bot, task)
