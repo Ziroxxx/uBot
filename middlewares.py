@@ -391,7 +391,10 @@ def get_tasks_one_scout(scout_id):
     return result
 
 def get_tasks_one_coordinator(coordinator_id):
-    return Task.select().where((Task.coord_id == coordinator_id) & (Task.scoutfk == None))
+    return Task.select().where((Task.coord_id == coordinator_id) & (Task.scouts == None or len(Task.scouts) == 0))
+
+def get_full_tasks_coordinator(coordinator_id):
+    return Task.select().where(Task.coord_id == coordinator_id)
 
 def remove_scout_from_list(task, scout_id):
     scouts_messages = task.scouts
