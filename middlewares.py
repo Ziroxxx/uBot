@@ -155,7 +155,7 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             sent = await msg.bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
                                         from_chat_id = cid, message_id=mid, 
                                         caption=text_of_task + '\n\n' + error_text,
-                                        reply_markup = kb.reply_markup_problem,
+                                        reply_markup = kb.reply_markup_problem if kb is not None else None,
                                         parse_mode = "HTML"
             )
             task.err_id = list(errorText.coordinator_errors.values()).index(error_text)
@@ -168,7 +168,7 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
         except:
             sent = await msg.bot.send_message(chat_id=coordinators[coordinator_sequence].id, 
                                         text=text_of_task + '\n\n' + error_text,
-                                        reply_markup = kb.reply_markup_problem,
+                                        reply_markup = kb.reply_markup_problem if kb is not None else None,
                                         parse_mode = "HTML"
             )
             task.err_id = list(errorText.coordinator_errors.values()).index(error_text)
