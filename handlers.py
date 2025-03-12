@@ -676,14 +676,20 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
         data = await state.get_data()
         danger_tasks = data.get('danger')
         user = data.get('user')
-        working_coordinators = Users.select().where((Users.role == 'coordinator') & (Users.working_status == True) & ~(Users.id == msg.chat.id))
-        if working_coordinators.exists():
-            for task in danger_tasks:
+        working_coordinators = list(Users.select().where((Users.role == 'coordinator') & (Users.working_status == True) & ~(Users.id == msg.chat.id)))
+        for task in danger_tasks:
+            if len(working_coordinators) > 0:
+                if task.scoutfk is not None:
+                    await send2Coordinator(msg, working_coordinators, 0, 
+                                            msgStatusText.first_stage(task.msg_text, str(find_coords(task.msg_text) if find_coords(task.msg_text) is not None else ''), task.id),
+                                            list(errorText.coordinator_errors.values())[task.err_id], 
+                                            task.coord_id, task.coord_msg, None, task, working_coordinators)
+                else:
+                    await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
+                                            list(errorText.coordinator_errors.values())[task.err_id], 
+                                            task.coord_id, task.coord_msg, kb.reply_markup_problem, task, working_coordinators)
                 await msg.bot.delete_message(chat_id=task.coord_id, message_id=task.coord_msg)
-                await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
-                                    list(errorText.coordinator_errors.values())[task.err_id], task.admin_chat, task.msg_status, kb, task, working_coordinators)
-        else:
-            for task in danger_tasks:
+            else:
                 await auto_cancel_task(msg.bot, task)
         user.working_status = False
         user.save()
