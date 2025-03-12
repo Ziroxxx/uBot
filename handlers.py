@@ -586,7 +586,6 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
                 remove_scout_from_list(task, user.id)
                 await send2Coordinator(msg, coordinators, 0, task.msg_text.replace(str_cords, '<code>'+ str_cords +'</code>'), errorText.coordinator_errors['scout_leaved'], task.admin_chat, task.msg_status, kb, task, coordinators)
             else:
-                print("second+ cancled branch")
                 await auto_cancel_task(msg.bot, task)
 
             task.msg_id_scout = None
