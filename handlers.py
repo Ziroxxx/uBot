@@ -679,20 +679,9 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
         working_coordinators = list(Users.select().where((Users.role == 'coordinator') & (Users.working_status == True) & ~(Users.id == msg.chat.id)))
         for task in danger_tasks:
             if len(working_coordinators) > 0:
-                if task.scoutfk is not None:
-                    await send2Coordinator(msg, working_coordinators, 0, 
-                                            msgStatusText.second_stage(task.msg_text, str(find_coords(task.msg_text) if find_coords(task.msg_text) is not None else ''), task.id),
-                                            list(errorText.coordinator_errors.values())[task.err_id], 
-                                            task.coord_id, task.coord_msg, None, task, working_coordinators)
-                elif task.scouts is not None:
-                    await send2Coordinator(msg, working_coordinators, 0, 
-                                            msgStatusText.first_stage(task.msg_text, str(find_coords(task.msg_text) if find_coords(task.msg_text) is not None else ''), task.id),
-                                            list(errorText.coordinator_errors.values())[task.err_id], 
-                                            task.coord_id, task.coord_msg, None, task, working_coordinators)
-                else:
-                    await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
-                                            list(errorText.coordinator_errors.values())[task.err_id], 
-                                            task.coord_id, task.coord_msg, kb, task, working_coordinators)
+                await send2Coordinator(msg, working_coordinators, 0, task.msg_text,
+                                        list(errorText.coordinator_errors.values())[task.err_id], 
+                                        task.coord_id, task.coord_msg, kb, task, working_coordinators)
                 await msg.bot.delete_message(chat_id=task.coord_id, message_id=task.coord_msg)
             else:
                 await auto_cancel_task(msg.bot, task)
