@@ -270,7 +270,7 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
                 await auto_cancel_task(bot, problem_task)
                 problem_task = None
 
-            coordinator_list[:] = filter(lambda x: x != user, coordinator_list)
+            coordinator_list[:] = list(filter(lambda x: x != user, coordinator_list))
             Users.delete().where(Users.id == user_id).execute()
             continue  # Переходим к следующему пользователю
 
@@ -311,7 +311,7 @@ async def banned_from_coordinator(bot, user_id, problem_task=None, problem_task_
                 await auto_cancel_task(bot, problem_task)
                 problem_task = None
 
-        coordinator_list[:] = filter(lambda x: x != user, coordinator_list)
+        coordinator_list[:] = list(filter(lambda x: x != user, coordinator_list))
         Users.delete().where(Users.id == user_id).execute()
         print('process deleting coordinator finished')
 

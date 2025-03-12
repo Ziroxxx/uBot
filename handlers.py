@@ -571,7 +571,7 @@ async def handler_submit_exit(msg: Message, state: FSMContext):
     tasks = data.get('tasks')
 
     if msg.text == 'Да':
-        coordinators = Users.select().where(Users.working_status == True)
+        coordinators = list(Users.select().where(Users.working_status == True))
 
         for task in tasks:
             cords = find_coords(task.msg_text)
