@@ -161,6 +161,8 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             task.err_id = list(errorText.coordinator_errors.values()).index(error_text)
             task.coord_id = coordinators[coordinator_sequence].id
             task.coord_msg = sent.message_id
+            task.datetimestamp_sent = None
+            task.scouts = None
             task.save()
             return sent
         except:
@@ -172,6 +174,8 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             task.err_id = list(errorText.coordinator_errors.values()).index(error_text)
             task.coord_id = coordinators[coordinator_sequence].id
             task.coord_msg = sent.message_id
+            task.datetimestamp_sent = None
+            task.scouts = None
             task.save()
             return sent
     except TelegramForbiddenError:
