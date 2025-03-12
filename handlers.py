@@ -356,10 +356,6 @@ async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext)
                 #!!!!! удаляем из таска координатора и самого координатора (нужно перекидывать задачи на другого координатора)
                 await edit_msg(callback_query.bot, task_object.coord_id, task_object.coord_msg, msgStatusText.second_stage(new_text, cords_str, id_task), None)
 
-            task_object.datetimestamp_sent = None
-            task_object.datetimestamp_accepted = datetime.datetime.now()
-            task_object.save()
-
             remove_scout_from_list(task_object, callback_query.from_user.id)
             if task_object.scouts is not None:
                 splited = task_object.scouts.split()
@@ -368,6 +364,11 @@ async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext)
                         await callback_query.bot.delete_message(chat_id=splited[i], message_id=splited[i+1])
                     except:
                         pass
+
+            task_object.datetimestamp_sent = None
+            task_object.datetimestamp_accepted = datetime.datetime.now()
+            task_object.scouts = None
+            task_object.save()
         else:
             await callback_query.message.answer(errorText.already_in_use)
             return
