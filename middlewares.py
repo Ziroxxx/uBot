@@ -92,12 +92,14 @@ def create_hash_for_task():
     return hash_of_task
 
 async def edit_msg(bot, cid, mid, eText, markup):
+    cords = find_coords(eText)
+    new_eText = eText.replace(cords, '<code>' + cords + '</code>') if cords is not None else eText
     try:
         try:
             return await bot.edit_message_text(
                 chat_id = cid,
                 message_id = mid,
-                text = eText,
+                text = new_eText,
                 reply_markup = markup,
                 parse_mode = "HTML"
             )
@@ -105,11 +107,11 @@ async def edit_msg(bot, cid, mid, eText, markup):
             return await bot.edit_message_caption(
                 chat_id = cid,
                 message_id = mid,
-                caption = eText,
+                caption = new_eText,
                 reply_markup = markup,
                 parse_mode = "HTML"
             )
-    except:
+    except TelegramForbiddenError:
         user = Users.get(id=cid)
         if user.role in ["boss", "sScout", "admin"]:
             print(f"user: {user.tg_username} was deleted from db!")
@@ -118,13 +120,17 @@ async def edit_msg(bot, cid, mid, eText, markup):
             await banned_from_coordinator(bot, user.id)
         else:
             pass
+    except:
+        pass
     
 async def send_msg(bot, cid, text, markup, photo, problem_task=None, coordinator_id=None, message_orig_id=None):
+    cords = find_coords(text)
+    new_text = text.replace(cords, '<code>' + cords + '</code>') if cords is not None else text
     try:
         try:
             #можно попробовать copy_message, аналогично send2Coordinator
             return await bot.send_photo(
-                caption = text,
+                caption = new_text,
                 photo = photo,
                 chat_id= cid,
                 parse_mode="HTML",
@@ -132,12 +138,12 @@ async def send_msg(bot, cid, text, markup, photo, problem_task=None, coordinator
             )
         except:
             return await bot.send_message(
-                text =  text,
+                text =  new_text,
                 chat_id= cid,
                 parse_mode="HTML",
                 reply_markup = markup
             )
-    except:
+    except TelegramForbiddenError:
         user = Users.get(id=cid)
         if user.role in ["boss", "sScout", "admin"]:
             print(f"user: {user.tg_username} was deleted from db!")
@@ -146,15 +152,19 @@ async def send_msg(bot, cid, text, markup, photo, problem_task=None, coordinator
             await banned_from_coordinator(bot, user.id)
         else:
             await banned_from_scout(bot, user, problem_task, coordinator_id, message_orig_id)
+    except:
+        pass
     
 async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task, error_text, cid, mid, kb, task, coordinator_list=None):
     if coordinator_list is None:
         coordinator_list = []
+    cords = find_coords(text_of_task)
+    new_text = text_of_task.replace(cords, '<code>' + cords + '</code>') if cords is not None else text_of_task
     try:
         try:
             sent = await msg.bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
                                         from_chat_id = cid, message_id=mid, 
-                                        caption=text_of_task + '\n\n' + error_text,
+                                        caption=new_text + '\n\n' + error_text,
                                         reply_markup = kb.reply_markup_problem if kb is not None else None,
                                         parse_mode = "HTML"
             )
@@ -167,7 +177,7 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
             return sent
         except:
             sent = await msg.bot.send_message(chat_id=coordinators[coordinator_sequence].id, 
-                                        text=text_of_task + '\n\n' + error_text,
+                                        text=new_text + '\n\n' + error_text,
                                         reply_markup = kb.reply_markup_problem if kb is not None else None,
                                         parse_mode = "HTML"
             )
@@ -182,11 +192,13 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
         await banned_from_coordinator(msg.bot, coordinators[coordinator_sequence].id, task, msg.message_id, coordinator_list)
 
 async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, cid, mid, task):
+    cords = find_coords(text_of_task)
+    new_text = text_of_task.replace(cords, '<code>' + cords + '</code>') if cords is not None else text_of_task
     try:
         try:
             sent = await bot.copy_message(chat_id=coordinator_id, 
                                         from_chat_id = cid, message_id=mid, 
-                                        caption=text_of_task + '\n\n' + error_text,
+                                        caption=new_text + '\n\n' + error_text,
                                         reply_markup = kb.reply_markup_problem,
                                         parse_mode = "HTML"
             )
@@ -199,7 +211,7 @@ async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, c
             return sent
         except:
             sent = await bot.send_message(chat_id=coordinator_id, 
-                                        text=text_of_task + '\n\n' + error_text,
+                                        text=new_text + '\n\n' + error_text,
                                         reply_markup = kb.reply_markup_problem,
                                         parse_mode = "HTML"
             )
@@ -214,26 +226,30 @@ async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, c
         await banned_from_coordinator(bot, coordinator_id, task)
     
 async def send2Coordinator_bot(bot, coordinators, coordinator_sequence, text_of_task, errorText, cid, mid):
+    cords = find_coords(text_of_task)
+    new_text = text_of_task.replace(cords, '<code>' + cords + '</code>') if cords is not None else text_of_task
     try:
         return await bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
                                     from_chat_id = cid, message_id=mid, 
-                                    caption=text_of_task + '\n\n' + errorText,
+                                    caption=new_text + '\n\n' + errorText,
                                     reply_markup = kb.reply_markup_problem,
                                     parse_mode = "HTML"
         )
     except:
         return await bot.send_message(chat_id=coordinators[coordinator_sequence].id, 
-                                    text=text_of_task + '\n\n' + errorText,
+                                    text=new_text + '\n\n' + errorText,
                                     reply_markup = kb.reply_markup_problem,
                                     parse_mode = "HTML"
         )
 
 async def copyTaskTo(bot, from_chat, from_msg, to_chat, own_text=None, markup=None):
     if own_text != None:
+        cords = find_coords(own_text)
+        new_text = own_text.replace(cords, '<code>' + cords + '</code>') if cords is not None else own_text
         return await bot.copy_message(chat_id=to_chat, 
                                     from_chat_id=from_chat, 
                                     message_id=from_msg,
-                                    caption=own_text,
+                                    caption=new_text,
                                     reply_markup=markup,
                                     parse_mode="HTML")
     else:
