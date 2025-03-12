@@ -10,7 +10,7 @@ from aiogram.exceptions import TelegramForbiddenError
 router = Router()
 
 TIME_FOR_ACCEPT_IN_MINUTES = 5
-TIME_FOR_DONE_IN_MINUTES = 60
+TIME_FOR_DONE_IN_MINUTES = 0.5
 COORDINATOR_SEQUENCE = -1
 
 def setup_scheduler(scheduler, bot):
