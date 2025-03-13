@@ -1,6 +1,8 @@
 from peewee import *
+import config
 
-database = PostgresqlDatabase('urentDB', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': 'klopa228'})
+PSQL_PASSWORD = config.PSQL_PASSWORD
+database = PostgresqlDatabase('urentDB', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': PSQL_PASSWORD})
 
 class UnknownField(object):
     def __init__(self, *_, **__): pass
