@@ -2,7 +2,12 @@ from peewee import *
 import config
 
 PSQL_PASSWORD = config.PSQL_PASSWORD
-database = PostgresqlDatabase('uBot', **{'host': 'localhost', 'port': 5432, 'user': 'postgres', 'password': PSQL_PASSWORD})
+PSQL_USER = config.PSQL_USER
+PSQL_DB_NAME = config.PSQL_DB_NAME
+PSQL_HOST = config.PSQL_HOST
+PSQL_PORT = config.PSQL_PORT
+
+database = PostgresqlDatabase(PSQL_DB_NAME, **{'host': PSQL_HOST, 'port': PSQL_PORT, 'user': PSQL_USER, 'password': PSQL_PASSWORD})
 
 class UnknownField(object):
     def __init__(self, *_, **__): pass
