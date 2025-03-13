@@ -3,14 +3,15 @@ import datetime
 from db import *
 from middlewares import *
 from text import *
+import config
 import kb
 
 from aiogram.exceptions import TelegramForbiddenError
 
 router = Router()
 
-TIME_FOR_ACCEPT_IN_MINUTES = 5
-TIME_FOR_DONE_IN_MINUTES = 0.5
+TIME_FOR_ACCEPT_IN_MINUTES = config.TIME_FOR_ACCEPT_IN_MINUTES
+TIME_FOR_DONE_IN_MINUTES = config.TIME_FOR_DONE_IN_MINUTES
 COORDINATOR_SEQUENCE = -1
 
 def setup_scheduler(scheduler, bot):
