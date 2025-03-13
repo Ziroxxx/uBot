@@ -7,7 +7,7 @@ with open(config_path, 'r') as config_file:
 
 BOT_TOKEN = config.get('telegram_token')
 PSQL_DB_NAME = config.get('psqlDbName')
-PSQL_USER = config.get('postgres')
+PSQL_USER = config.get('psqlUser')
 PSQL_HOST = config.get("psqlHost")
 PSQL_PORT = config.get('psqlPort')
 PSQL_PASSWORD = config.get('psqlPassword')
