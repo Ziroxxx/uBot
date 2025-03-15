@@ -45,7 +45,7 @@ async def start_handler(msg: Message, state: FSMContext):
             await msg.answer(errorText.non_role, reply_markup=kb.ReplyKeyboardRemove())
     except:
         await msg.answer(infoText.hello)
-        Users.create(id=msg.from_user.id, tg_username=msg.from_user.username, role='non-role')
+        Users.create(id=msg.from_user.id, tg_username=msg.from_user.username, role='non-role', reply_markup=kb.ReplyKeyboardRemove())
 
 @router.message(lambda msg: msg.text == '🔑 Назначить')
 async def register_handler(msg: Message, state: FSMContext):
