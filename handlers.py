@@ -207,6 +207,11 @@ async def process_zones(json_data, msg: Message, state: FSMContext):
     except Exception as e:
         await msg.answer(errorText.fatal_load(e))
 
+@router.message()
+async def any_message_handler(msg: Message):
+    if check_permission(msg.from_user.id) == 'sScout':
+        await handle_forwarded_message(msg)
+
 class IsForwardedFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         return bool(message.forward_from or message.forward_from_chat)
@@ -725,25 +730,28 @@ async def handler_submit_coordinator_exit(msg: Message, state: FSMContext):
 @router.message(lambda msg: msg.text == '🔎 Список')
 async def handler_search_scouts(msg: Message):
     #@tag - zone_name[0], zone_name[1]....\n
-    result = {}
-    mm_zones_object = Mm.select()
-    if not mm_zones_object:
-        await msg.answer('Сейчас нет активных скаутов.')
-        return
-    for slot in mm_zones_object:
-        scout = slot.scoutfk
-        zone = slot.zonefk
+    if check_permission(msg.from_user.id) == 'sScout':
+        result = {}
+        mm_zones_object = Mm.select()
+        if not mm_zones_object:
+            await msg.answer('Сейчас нет активных скаутов.')
+            return
+        for slot in mm_zones_object:
+            scout = slot.scoutfk
+            zone = slot.zonefk
 
-        if scout.tg_username in result:
-            result[scout.tg_username].append(zone.name)
-        else:
-            result[scout.tg_username] = [zone.name]
+            if scout.tg_username in result:
+                result[scout.tg_username].append(zone.name)
+            else:
+                result[scout.tg_username] = [zone.name]
 
-    text = ''
-    for scout, zones in result.items():
-        text += '@' + scout + ' - ' + str(zones) + '\n'
+        text = ''
+        for scout, zones in result.items():
+            text += '@' + scout + ' - ' + str(zones) + '\n'
 
-    await msg.answer('Активные скауты:\n' + text)
+        await msg.answer('Активные скауты:\n' + text)
+    else:
+        await msg.answer(errorText.no_rights)
     
 
 #created by Zirox with hate :)
