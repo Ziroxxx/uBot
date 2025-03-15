@@ -125,7 +125,8 @@ async def edit_msg(bot, cid, mid, eText, markup):
     
 async def send_msg(bot, cid, text, markup, photo, problem_task=None, coordinator_id=None, message_orig_id=None):
     cords = find_coords(text)
-    new_text = text.replace(cords, '<code>' + cords + '</code>') if cords is not None else text
+    cords_str = (str(cords[0]) + str(cords[1])) if cords is not None else ''
+    new_text = text.replace(cords_str, '<code>' + cords_str + '</code>')
     try:
         try:
             #можно попробовать copy_message, аналогично send2Coordinator
@@ -159,7 +160,8 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
     if coordinator_list is None:
         coordinator_list = []
     cords = find_coords(text_of_task)
-    new_text = text_of_task.replace(cords, '<code>' + cords + '</code>') if cords is not None else text_of_task
+    cords_str = (str(cords[0]) + str(cords[1])) if cords is not None else ''
+    new_text = text_of_task.replace(cords_str, '<code>' + cords_str + '</code>')
     try:
         try:
             sent = await msg.bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
@@ -193,7 +195,8 @@ async def send2Coordinator(msg, coordinators, coordinator_sequence, text_of_task
 
 async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, cid, mid, task):
     cords = find_coords(text_of_task)
-    new_text = text_of_task.replace(cords, '<code>' + cords + '</code>') if cords is not None else text_of_task
+    cords_str = (str(cords[0]) + str(cords[1])) if cords is not None else ''
+    new_text = text_of_task.replace(cords_str, '<code>' + cords_str + '</code>')
     try:
         try:
             sent = await bot.copy_message(chat_id=coordinator_id, 
@@ -227,7 +230,8 @@ async def send2Coordinator_bot2(bot, coordinator_id, text_of_task, error_text, c
     
 async def send2Coordinator_bot(bot, coordinators, coordinator_sequence, text_of_task, errorText, cid, mid):
     cords = find_coords(text_of_task)
-    new_text = text_of_task.replace(cords, '<code>' + cords + '</code>') if cords is not None else text_of_task
+    cords_str = (str(cords[0]) + str(cords[1])) if cords is not None else ''
+    new_text = text_of_task.replace(cords_str, '<code>' + cords_str + '</code>')
     try:
         return await bot.copy_message(chat_id=coordinators[coordinator_sequence].id, 
                                     from_chat_id = cid, message_id=mid, 
@@ -245,7 +249,8 @@ async def send2Coordinator_bot(bot, coordinators, coordinator_sequence, text_of_
 async def copyTaskTo(bot, from_chat, from_msg, to_chat, own_text=None, markup=None):
     if own_text != None:
         cords = find_coords(own_text)
-        new_text = own_text.replace(cords, '<code>' + cords + '</code>') if cords is not None else own_text
+        cords_str = (str(cords[0]) + str(cords[1])) if cords is not None else ''
+        new_text = own_text.replace(cords_str, '<code>' + cords_str + '</code>')
         return await bot.copy_message(chat_id=to_chat, 
                                     from_chat_id=from_chat, 
                                     message_id=from_msg,
