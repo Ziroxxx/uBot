@@ -44,8 +44,8 @@ async def start_handler(msg: Message, state: FSMContext):
         else:
             await msg.answer(errorText.non_role, reply_markup=kb.ReplyKeyboardRemove())
     except:
-        await msg.answer(infoText.hello)
-        Users.create(id=msg.from_user.id, tg_username=msg.from_user.username, role='non-role', reply_markup=kb.ReplyKeyboardRemove())
+        await msg.answer(infoText.hello, reply_markup=kb.ReplyKeyboardRemove())
+        Users.create(id=msg.from_user.id, tg_username=msg.from_user.username, role='non-role')
 
 @router.message(lambda msg: msg.text == '🔑 Назначить')
 async def register_handler(msg: Message, state: FSMContext):
@@ -242,6 +242,7 @@ async def handle_forwarded_message(msg: Message):
         if not point:
             if len(coordinators) == 0:
                 await msg.answer(errorText.no_coordinator)
+                new_task.delete_instance()
                 return
             
             string_coords = ''
@@ -270,6 +271,7 @@ async def handle_forwarded_message(msg: Message):
                 if len(scouts_on_zone) == 0:
                     if len(coordinators) == 0:
                         await msg.answer(errorText.no_coordinator)
+                        new_task.delete_instance()
                         return
                     
                     await send2Coordinator(msg, coordinators, local_coordinator_sequence, text_of_task, errorText.coordinator_errors['no_active_scout'], msg.from_user.id, msg.message_id, kb, new_task)
@@ -288,6 +290,7 @@ async def handle_forwarded_message(msg: Message):
             else:
                 if len(coordinators) == 0:
                     await msg.answer(errorText.no_coordinator)
+                    new_task.delete_instance()
                     return
                 
                 await send2Coordinator(msg, coordinators, local_coordinator_sequence, text_of_task, errorText.coordinator_errors['unknown_point'], msg.from_user.id, msg.message_id, kb, new_task)
@@ -454,6 +457,9 @@ async def handler_waiting_stag(msg: Message, state: FSMContext):
     try:
         # Пытаемся получить информацию о пользователе по тегу
         user = Users.get(tg_username=tag[1:])
+        if user.role != 'scout' or not Mm.select().where(Mm.scoutfk == user).exists():
+            await msg.answer(errorText.delegate_tag_err)
+            return
         await state.update_data(tg_id=user.id)  # Сохраняем ID в состоянии
         await msg.answer(infoText.found_tag_answer(tag, user.id) + '\n\n' + infoText.optional_caption)
         await state.set_state(CoordinatorState.waiting_for_caption)  # Переходим к следующему состоянию

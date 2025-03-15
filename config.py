@@ -1,6 +1,6 @@
 import json
 
-config_path = "/opt/uBot/config/conf.json"
+config_path = "./config/conf.json"
 
 with open(config_path, 'r') as config_file:
     config = json.load(config_file)
