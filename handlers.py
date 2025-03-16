@@ -207,11 +207,6 @@ async def process_zones(json_data, msg: Message, state: FSMContext):
     except Exception as e:
         await msg.answer(errorText.fatal_load(e))
 
-@router.message()
-async def any_message_handler(msg: Message):
-    if check_permission(msg.from_user.id) == 'sScout':
-        await handle_forwarded_message(msg)
-
 class IsForwardedFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         return bool(message.forward_from or message.forward_from_chat)
@@ -752,6 +747,11 @@ async def handler_search_scouts(msg: Message):
         await msg.answer('Активные скауты:\n' + text)
     else:
         await msg.answer(errorText.no_rights)
+
+@router.message()
+async def any_message_handler(msg: Message):
+    if check_permission(msg.from_user.id) == 'sScout':
+        await handle_forwarded_message(msg)
     
 
 #created by Zirox with hate :)
