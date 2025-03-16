@@ -493,6 +493,9 @@ async def banned_from_scout(bot, problem_scout, problem_task, coordinator_id=Non
 
         for task in danger_tasks:
             remove_scout_from_list(task, scout_to_processing.id)
+            task.scoutfk = None
+            task.msg_id_scout = None
+            task.save()
             await deleteCordTask(bot, task)
 
             if task.zone_id is not None:
