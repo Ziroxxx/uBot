@@ -370,7 +370,7 @@ async def hadle_callback(callback_query: types.CallbackQuery, state: FSMContext)
 
             task_object.datetimestamp_sent = None
             task_object.datetimestamp_accepted = datetime.datetime.now()
-            task_object.scouts = None
+            task_object.scouts = f" {callback_query.from_user.id} {callback_query.message.message_id}"
             task_object.save()
         else:
             await callback_query.message.answer(errorText.already_in_use)

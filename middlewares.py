@@ -450,7 +450,7 @@ async def send2OtherScouts(bot, task, scouts, scouts_queue, dict_zone_scouts):
         try:    
             err_text = list(errorText.coordinator_errors.values())[task.err_id] if task.err_id != None else ''
             text_of_task = task.msg_text
-            new_text = text_of_task + '\n\n' + err_text + f"\n#{task.id}"
+            new_text = text_of_task + '\n\n' + err_text + f"#{task.id}"
             sent = await copyTaskTo(bot, task.admin_chat, task.msg_status, scout.id, new_text, kb.reply_markup)
             scouts_sent += f' {scout.id} {sent.message_id}'
             flag_sent = True
@@ -490,12 +490,10 @@ async def banned_from_scout(bot, problem_scout, problem_task, coordinator_id=Non
     while scouts_queue:
         scout_to_processing = scouts_queue.popleft()
         danger_tasks = get_tasks_one_scout(scout_to_processing.id)
+        print(f"scout danger: {danger_tasks}")
 
         for task in danger_tasks:
             remove_scout_from_list(task, scout_to_processing.id)
-            task.scoutfk = None
-            task.msg_id_scout = None
-            task.save()
             await deleteCordTask(bot, task)
 
             if task.zone_id is not None:
@@ -509,6 +507,8 @@ async def banned_from_scout(bot, problem_scout, problem_task, coordinator_id=Non
                 tasks_to_coordinator.append(task)
         
         print(f'scout {problem_scout.tg_username} was deleted from db!')
+        Task.update({Task.scoutfk: None, Task.msg_id_scout: None, Task.datetimestamp_accepted: None})\
+            .where(Task.scoutfk == scout_to_processing).execute()
         Mm.delete().where(Mm.scoutfk == scout_to_processing).execute()
         scout_to_processing.delete_instance()
 
